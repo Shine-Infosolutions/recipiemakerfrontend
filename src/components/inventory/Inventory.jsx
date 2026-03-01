@@ -63,13 +63,7 @@ const Inventory = () => {
   };
 
   return (
-    <div style={{ 
-      padding: window.innerWidth < 768 ? '15px' : '40px', 
-      background: '#f8f9fa',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <>
       <div style={{ 
         position: 'fixed',
         top: 0,
@@ -77,266 +71,263 @@ const Inventory = () => {
         right: 0,
         background: '#f8f9fa',
         zIndex: 10,
-        padding: window.innerWidth < 768 ? '15px' : '20px 40px',
-        borderBottom: '2px solid #e9ecef'
+        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
+        borderBottom: '2px solid #e9ecef',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
       }}>
-      <div style={{ display: 'flex', flexDirection: window.innerWidth < 768 ? 'column' : 'row', justifyContent: 'space-between', alignItems: window.innerWidth < 768 ? 'flex-start' : 'center', gap: '15px' }}>
-        <div>
-          <h1 style={{ fontSize: window.innerWidth < 768 ? '24px' : '28px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MdKitchen style={{ fontSize: window.innerWidth < 768 ? '24px' : '28px' }} /> Inventory
-          </h1>
-          <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px' }}>Manage your kitchen ingredients</p>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingId(null);
-            setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
-          }}
-          style={{
-            padding: '10px 20px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: window.innerWidth < 768 ? '100%' : 'auto'
-          }}
-        >
-          + Add Item
-        </motion.button>
-      </div>
-      </div>
-
-      <div style={{ marginTop: window.innerWidth < 768 ? '135px' : '100px' }}>
-      {showForm && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            background: 'white',
-            padding: '30px',
-            borderRadius: '20px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            marginBottom: '30px',
-            border: '1px solid #e9ecef'
-          }}
-        >
-          <h3 style={{ marginTop: 0, color: '#2d3436', fontSize: window.innerWidth < 768 ? '16px' : '18px', fontWeight: '600' }}>{editingId ? <><MdEdit style={{ verticalAlign: 'middle' }} /> Edit Item</> : <>Add New Item</>}</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '2fr 1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-            <input
-              type="text"
-              placeholder="Item name (e.g., Flour)"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{
-                padding: '10px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none'
-              }}
-            />
-            <input
-              type="number"
-              placeholder="Quantity"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              style={{
-                padding: '10px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none'
-              }}
-            />
-            <select
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              style={{
-                padding: '10px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">Select Unit</option>
-              <option value="PCS">PCS</option>
-              <option value="KG">KG</option>
-              <option value="Gram">Gram</option>
-              <option value="Liter">Liter</option>
-              <option value="Meter">Meter</option>
-              <option value="Box">Box</option>
-              <option value="Pack">Pack</option>
-              <option value="Dozen">Dozen</option>
-              <option value="Carton">Carton</option>
-              <option value="Set">Set</option>
-              <option value="Pair">Pair</option>
-            </select>
-            <input
-              type="number"
-              placeholder="Price"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              style={{
-                padding: '10px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none'
-              }}
-            />
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              style={{
-                padding: '10px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="">Select Category</option>
-              <option value="Dairy">Dairy</option>
-              <option value="Vegetables">Vegetables</option>
-              <option value="Fruits">Fruits</option>
-              <option value="Meat">Meat</option>
-              <option value="Seafood">Seafood</option>
-              <option value="Grains">Grains</option>
-              <option value="Baking">Baking</option>
-              <option value="Spices">Spices</option>
-              <option value="Sauces">Sauces</option>
-              <option value="Oils">Oils</option>
-              <option value="Beverages">Beverages</option>
-              <option value="Snacks">Snacks</option>
-            </select>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MdKitchen style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Inventory</span>
+            </h1>
+            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Manage your kitchen ingredients</p>}
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={addItem}
-              style={{
-                padding: '8px 16px',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '14px'
-              }}
-            >
-              {editingId ? 'Update' : 'Add'}
-            </button>
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setEditingId(null);
-                setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
-              }}
-              style={{
-                padding: '8px 16px',
-                background: '#e9ecef',
-                color: '#495057',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '14px'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 480 ? '1fr' : window.innerWidth < 768 ? 'repeat(auto-fill, minmax(280px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {items.map((item) => (
-          <motion.div
-            key={item._id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ y: -8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}
-            transition={{ duration: 0.2 }}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
+            }}
             style={{
-              background: 'white',
-              padding: window.innerWidth < 768 ? '16px' : '24px',
-              borderRadius: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              display: 'flex',
-              flexDirection: window.innerWidth < 480 ? 'column' : 'row',
-              justifyContent: 'space-between',
-              alignItems: window.innerWidth < 480 ? 'flex-start' : 'center',
-              border: '1px solid #e9ecef',
-              gap: '12px'
+              padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
-            <div>
-              <h3 style={{ margin: '0 0 8px 0', color: '#2d3436', fontSize: window.innerWidth < 768 ? '16px' : '18px', fontWeight: '600' }}>{item.name}</h3>
-              <p style={{ margin: '0 0 6px 0', color: '#636e72', fontSize: '13px', fontWeight: '500' }}>
-                {item.quantity} {item.unit} {item.price > 0 && `• ₹${item.price}`}
-              </p>
-              {item.category && <span style={{ fontSize: '12px', color: '#667eea', marginTop: '4px', display: 'inline-block', background: '#f0f0ff', padding: '3px 10px', borderRadius: '12px', fontWeight: '600' }}><MdRestaurantMenu style={{ verticalAlign: 'middle' }} /> {item.category}</span>}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', width: window.innerWidth < 480 ? '100%' : 'auto' }}>
-              <button
-                onClick={() => editItem(item)}
+            + Add Item
+          </motion.button>
+        </div>
+      </div>
+
+      <div style={{ 
+        marginTop: window.innerWidth < 768 ? '70px' : '90px',
+        padding: window.innerWidth < 768 ? '15px' : '30px',
+        background: '#f8f9fa',
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
+      }}>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 100 }}
+            style={{
+              background: 'white',
+              padding: '24px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              marginBottom: '24px',
+              border: '1px solid #e9ecef'
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: '#2d3436', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>{editingId ? <><MdEdit style={{ verticalAlign: 'middle' }} /> Edit Item</> : <>Add New Item</>}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <input
+                type="text"
+                placeholder="Item name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 style={{
-                  background: '#5f27cd',
+                  padding: '10px',
+                  border: '1px solid #dfe6e9',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <input
+                type="number"
+                placeholder="Quantity"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                style={{
+                  padding: '10px',
+                  border: '1px solid #dfe6e9',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <select
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                style={{
+                  padding: '10px',
+                  border: '1px solid #dfe6e9',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Unit</option>
+                <option value="PCS">PCS</option>
+                <option value="KG">KG</option>
+                <option value="Gram">Gram</option>
+                <option value="Liter">Liter</option>
+                <option value="Pack">Pack</option>
+                <option value="Dozen">Dozen</option>
+              </select>
+              <input
+                type="number"
+                placeholder="Price"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                style={{
+                  padding: '10px',
+                  border: '1px solid #dfe6e9',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                style={{
+                  padding: '10px',
+                  border: '1px solid #dfe6e9',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Category</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Vegetables">Vegetables</option>
+                <option value="Fruits">Fruits</option>
+                <option value="Meat">Meat</option>
+                <option value="Grains">Grains</option>
+                <option value="Spices">Spices</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={addItem}
+                style={{
+                  padding: '10px 20px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  padding: '6px 12px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '13px',
-                  flex: window.innerWidth < 480 ? '1' : 'none'
+                  fontSize: '14px'
                 }}
               >
-                <MdEdit /> Edit
+                {editingId ? 'Update' : 'Add'}
               </button>
               <button
-                onClick={() => deleteItem(item._id)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
+                }}
                 style={{
-                  background: '#ff4757',
+                  padding: '10px 20px',
+                  background: '#95a5a6',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
-                  padding: '6px 12px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '13px',
-                  flex: window.innerWidth < 480 ? '1' : 'none'
+                  fontSize: '14px'
                 }}
               >
-                <MdDelete /> Delete
+                Cancel
               </button>
             </div>
           </motion.div>
-        ))}
-      </div>
-      </div>
+        )}
 
-      {items.length === 0 && !showForm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '80px', background: 'white', borderRadius: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}
-        >
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}><MdKitchen /></div>
-          <p style={{ fontSize: '20px', color: '#2d3436', fontWeight: '600' }}>Your inventory is empty</p>
-          <p style={{ fontSize: '14px', color: '#636e72', marginTop: '8px' }}>Click "Add Item" to start managing your ingredients!</p>
-        </motion.div>
-      )}
-    </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {items.map((item) => (
+            <motion.div
+              key={item._id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -4, boxShadow: '0 8px 16px rgba(0,0,0,0.12)' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              style={{
+                background: 'white',
+                padding: '16px',
+                borderRadius: '10px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: '0 0 6px 0', color: '#2d3436', fontSize: '16px', fontWeight: '600' }}>{item.name}</h3>
+                <p style={{ margin: '0 0 6px 0', color: '#636e72', fontSize: '14px', fontWeight: '500' }}>
+                  {item.quantity} {item.unit} {item.price > 0 && `• ₹${item.price}`}
+                </p>
+                {item.category && <span style={{ fontSize: '11px', color: '#667eea', display: 'inline-block', background: '#f0f0ff', padding: '3px 10px', borderRadius: '10px', fontWeight: '600' }}><MdRestaurantMenu style={{ verticalAlign: 'middle' }} /> {item.category}</span>}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+                <button
+                  onClick={() => editItem(item)}
+                  style={{
+                    background: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    flex: 1
+                  }}
+                >
+                  <MdEdit style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }} /> Edit
+                </button>
+                <button
+                  onClick={() => deleteItem(item._id)}
+                  style={{
+                    background: '#ff4757',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    flex: 1
+                  }}
+                >
+                  <MdDelete style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }} /> Delete
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {items.length === 0 && !showForm && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 100 }}
+            style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', maxWidth: '500px', margin: '60px auto' }}
+          >
+            <div style={{ fontSize: '48px', marginBottom: '12px', color: '#667eea', display: 'flex', justifyContent: 'center' }}><MdKitchen /></div>
+            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>Your inventory is empty</p>
+            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Click "Add Item" to start managing your ingredients!</p>
+          </motion.div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { MdRestaurantMenu, MdInventory, MdFactory, MdSettings } from 'react-icons/md';
-import { BiLogOut } from 'react-icons/bi';
+import { MdRestaurantMenu, MdInventory, MdFactory, MdSettings, MdDashboard } from 'react-icons/md';
+import { GiCookingPot } from 'react-icons/gi';
+import { BiError, BiLogOut } from 'react-icons/bi';
 import Register from './components/Register';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 import Inventory from './components/inventory/Inventory';
 import Recipes from './components/Recipes';
 import RawMaterials from './components/RawMaterials';
+import Cooking from './components/Cooking';
+import SemiFinished from './components/SemiFinished';
 import ChangePassword from './components/ChangePassword';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [showRegister, setShowRegister] = useState(false);
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -48,13 +52,26 @@ const App = () => {
     );
   }
 
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
+    { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+    { id: 'cooking', label: 'Cooking', Icon: GiCookingPot, color: '#667eea' },
+    { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
+    { id: 'inventory', label: 'Inventory', Icon: MdInventory, color: '#667eea' },
+    { id: 'rawmaterials', label: 'Materials', Icon: MdFactory, color: '#667eea' },
+    { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
+  ];
+
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#f5f5f5', flexDirection: 'column' }}>
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {!isMobile && <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />}
         <div style={{ flex: 1, overflow: 'auto', paddingBottom: isMobile ? '80px' : '0' }}>
+          {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'inventory' && <Inventory />}
           {activeTab === 'recipes' && <Recipes />}
+          {activeTab === 'cooking' && <Cooking />}
+          {activeTab === 'semifinished' && <SemiFinished />}
           {activeTab === 'rawmaterials' && <RawMaterials />}
           {activeTab === 'settings' && <ChangePassword />}
         </div>
@@ -65,33 +82,46 @@ const App = () => {
           bottom: 0,
           left: 0,
           right: 0,
-          background: 'white',
+          background: 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)',
           display: 'flex',
           justifyContent: 'space-around',
-          padding: '8px 0 12px 0',
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+          padding: '10px 0 14px 0',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
           zIndex: 1000,
-          borderTop: '1px solid #e9ecef'
+          borderTop: '2px solid #e9ecef'
         }}>
-          <div onClick={() => setActiveTab('recipes')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '4px' }}>
-            <MdRestaurantMenu style={{ fontSize: '22px', color: activeTab === 'recipes' ? '#667eea' : '#95a5a6' }} />
-            <span style={{ fontSize: '11px', color: activeTab === 'recipes' ? '#667eea' : '#95a5a6', fontWeight: activeTab === 'recipes' ? '600' : '400', marginTop: '2px' }}>Recipes</span>
-          </div>
-          <div onClick={() => setActiveTab('inventory')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '4px' }}>
-            <MdInventory style={{ fontSize: '22px', color: activeTab === 'inventory' ? '#667eea' : '#95a5a6' }} />
-            <span style={{ fontSize: '11px', color: activeTab === 'inventory' ? '#667eea' : '#95a5a6', fontWeight: activeTab === 'inventory' ? '600' : '400', marginTop: '2px' }}>Inventory</span>
-          </div>
-          <div onClick={() => setActiveTab('rawmaterials')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '4px' }}>
-            <MdFactory style={{ fontSize: '22px', color: activeTab === 'rawmaterials' ? '#667eea' : '#95a5a6' }} />
-            <span style={{ fontSize: '11px', color: activeTab === 'rawmaterials' ? '#667eea' : '#95a5a6', fontWeight: activeTab === 'rawmaterials' ? '600' : '400', marginTop: '2px' }}>Materials</span>
-          </div>
-          <div onClick={() => setActiveTab('settings')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '4px' }}>
-            <MdSettings style={{ fontSize: '22px', color: activeTab === 'settings' ? '#667eea' : '#95a5a6' }} />
-            <span style={{ fontSize: '11px', color: activeTab === 'settings' ? '#667eea' : '#95a5a6', fontWeight: activeTab === 'settings' ? '600' : '400', marginTop: '2px' }}>Settings</span>
-          </div>
-          <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '4px' }}>
-            <BiLogOut style={{ fontSize: '22px', color: '#95a5a6' }} />
-            <span style={{ fontSize: '11px', color: '#95a5a6', marginTop: '2px' }}>Logout</span>
+          {navItems.map((item) => (
+            <div 
+              key={item.id}
+              onClick={() => setActiveTab(item.id)} 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                cursor: 'pointer', 
+                flex: 1, 
+                padding: '6px',
+                transition: 'all 0.3s ease',
+                transform: activeTab === item.id ? 'scale(1.1)' : 'scale(1)'
+              }}
+            >
+              <item.Icon style={{ 
+                fontSize: '24px', 
+                color: activeTab === item.id ? item.color : '#95a5a6',
+                transition: 'all 0.3s ease'
+              }} />
+              <span style={{ 
+                fontSize: '11px', 
+                color: activeTab === item.id ? item.color : '#95a5a6', 
+                fontWeight: activeTab === item.id ? '700' : '500', 
+                marginTop: '4px',
+                transition: 'all 0.3s ease'
+              }}>{item.label}</span>
+            </div>
+          ))}
+          <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '6px' }}>
+            <BiLogOut style={{ fontSize: '24px', color: '#e74c3c' }} />
+            <span style={{ fontSize: '11px', color: '#e74c3c', marginTop: '4px', fontWeight: '500' }}>Logout</span>
           </div>
         </div>
       )}

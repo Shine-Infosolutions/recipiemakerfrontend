@@ -102,13 +102,7 @@ const RawMaterials = () => {
   };
 
   return (
-    <div style={{ 
-      padding: window.innerWidth < 768 ? '15px' : '40px', 
-      background: '#f8f9fa',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <>
       <div style={{ 
         position: 'fixed',
         top: 0,
@@ -116,283 +110,299 @@ const RawMaterials = () => {
         right: 0,
         background: '#f8f9fa',
         zIndex: 10,
-        padding: window.innerWidth < 768 ? '15px' : '20px 40px',
-        borderBottom: '2px solid #e9ecef'
+        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
+        borderBottom: '2px solid #e9ecef',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
       }}>
-      <div style={{ display: 'flex', flexDirection: window.innerWidth < 768 ? 'column' : 'row', justifyContent: 'space-between', alignItems: window.innerWidth < 768 ? 'flex-start' : 'center', gap: '15px' }}>
-        <div>
-          <h1 style={{ fontSize: window.innerWidth < 768 ? '24px' : '28px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MdInventory style={{ fontSize: window.innerWidth < 768 ? '24px' : '28px' }} /> Raw Materials
-          </h1>
-          <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px' }}>Manage recipe templates and ingredients</p>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingId(null);
-            setFormData({ recipeName: '', variation: '', ingredients: [{ inventoryId: '', quantity: '' }] });
-          }}
-          style={{
-            padding: '10px 20px',
-            background: 'linear-gradient(135deg, #fd79a8 0%, #a29bfe 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            width: window.innerWidth < 768 ? '100%' : 'auto'
-          }}
-        >
-          + Add Recipe
-        </motion.button>
-      </div>
-      </div>
-
-      <div style={{ marginTop: window.innerWidth < 768 ? '135px' : '100px' }}>
-
-      {showForm && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            background: 'white',
-            padding: '30px',
-            borderRadius: '15px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            marginBottom: '30px'
-          }}
-        >
-          <h3 style={{ marginTop: 0, color: '#2d3436', fontSize: '18px', fontWeight: '600' }}>{editingId ? <><MdEdit style={{ verticalAlign: 'middle' }} /> Edit Recipe</> : <>Add New Recipe</>}</h3>
-          <input
-            type="text"
-            placeholder="Recipe name (e.g., Pizza)"
-            value={formData.recipeName}
-            onChange={(e) => setFormData({ ...formData, recipeName: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
-              fontSize: '15px',
-              outline: 'none',
-              marginBottom: '10px'
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MdInventory style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Raw Materials</span>
+            </h1>
+            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Manage recipe templates</p>}
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setFormData({ recipeName: '', variation: '', ingredients: [{ inventoryId: '', quantity: '' }] });
             }}
-          />
-          <input
-            type="text"
-            placeholder="Variation (optional, e.g., Margherita)"
-            value={formData.variation}
-            onChange={(e) => setFormData({ ...formData, variation: e.target.value })}
             style={{
-              width: '100%',
-              padding: '12px',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
-              fontSize: '15px',
-              outline: 'none',
-              marginBottom: '20px'
-            }}
-          />
-          
-          <h4 style={{ color: '#2d3436', marginBottom: '15px' }}>Ingredients:</h4>
-          {formData.ingredients.map((ingredient, index) => (
-            <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', marginBottom: '10px' }}>
-              <select
-                value={ingredient.inventoryId}
-                onChange={(e) => updateIngredient(index, 'inventoryId', e.target.value)}
-                style={{
-                  padding: '12px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="">Select Ingredient</option>
-                {inventoryItems.map(inv => (
-                  <option key={inv._id} value={inv._id}>{inv.name} ({inv.quantity} {inv.unit})</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                placeholder="Quantity"
-                value={ingredient.quantity}
-                onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                style={{
-                  padding: '12px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  outline: 'none'
-                }}
-              />
-              {formData.ingredients.length > 1 && (
-                <button
-                  onClick={() => removeIngredient(index)}
-                  style={{
-                    padding: '12px',
-                    background: '#ff6348',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  <MdClose />
-                </button>
-              )}
-            </div>
-          ))}
-          
-          <button
-            onClick={addIngredient}
-            style={{
-              padding: '10px 20px',
-              background: '#74b9ff',
+              padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              cursor: 'pointer',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
               fontWeight: '600',
-              marginTop: '10px',
-              marginBottom: '20px'
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
-            <MdAdd /> Add Ingredient
-          </button>
+            + Add Recipe
+          </motion.button>
+        </div>
+      </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={addItem}
-              style={{
-                padding: '10px 20px',
-                background: 'linear-gradient(135deg, #fd79a8 0%, #a29bfe 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              {editingId ? 'Update Recipe' : 'Save Recipe'}
-            </button>
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setEditingId(null);
-                setFormData({ recipeName: '', variation: '', ingredients: [{ inventoryId: '', quantity: '' }] });
-              }}
-              style={{
-                padding: '10px 20px',
-                background: '#e0e0e0',
-                color: '#333',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 480 ? '1fr' : window.innerWidth < 768 ? 'repeat(auto-fill, minmax(280px, 1fr))' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {items.map((item) => (
+      <div style={{ 
+        marginTop: window.innerWidth < 768 ? '70px' : '90px',
+        padding: window.innerWidth < 768 ? '15px' : '30px',
+        background: '#f8f9fa',
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
+      }}>
+        {showForm && (
           <motion.div
-            key={item._id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ y: -5 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 100 }}
             style={{
               background: 'white',
-              padding: '16px',
+              padding: '24px',
               borderRadius: '12px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-              border: '2px solid #e0e0e0'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              marginBottom: '24px',
+              border: '1px solid #e9ecef'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
-              <div>
-                <h3 style={{ margin: 0, color: '#2d3436', fontSize: '16px', fontWeight: '600' }}>{item.recipeName}</h3>
-                {item.variation && <p style={{ margin: '4px 0 0 0', color: '#636e72', fontSize: '13px' }}>{item.variation}</p>}
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => editItem(item)}
-                  style={{
-                    background: '#74b9ff',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '5px 10px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '12px'
-                  }}
-                >
-                  <MdEdit /> Edit
-                </button>
-                <button
-                  onClick={() => deleteItem(item._id)}
-                  style={{
-                    background: '#ff6348',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '5px 10px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '12px'
-                  }}
-                >
-                  <MdDelete /> Delete
-                </button>
-              </div>
-            </div>
+            <h3 style={{ marginTop: 0, color: '#2d3436', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>{editingId ? <><MdEdit style={{ verticalAlign: 'middle' }} /> Edit Recipe</> : <>Add New Recipe</>}</h3>
+            <input
+              type="text"
+              placeholder="Recipe name"
+              value={formData.recipeName}
+              onChange={(e) => setFormData({ ...formData, recipeName: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #dfe6e9',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none',
+                marginBottom: '10px'
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Variation (optional)"
+              value={formData.variation}
+              onChange={(e) => setFormData({ ...formData, variation: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #dfe6e9',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none',
+                marginBottom: '16px'
+              }}
+            />
             
-            <div style={{ borderTop: '1px solid #e0e0e0', paddingTop: '10px' }}>
-              <p style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', marginBottom: '8px' }}>Ingredients:</p>
-              {item.ingredients?.map((ing, idx) => (
-                <div key={idx} style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  padding: '6px 0',
-                  borderBottom: idx < item.ingredients.length - 1 ? '1px solid #f0f0f0' : 'none'
-                }}>
-                  <span style={{ fontSize: '13px', color: '#2d3436' }}>
-                    {isLowStock(ing) && <BiSolidError style={{ color: '#ff6348', verticalAlign: 'middle' }} />}
-                    {ing.inventoryId?.name}
-                  </span>
-                  <span style={{ fontSize: '13px', color: isLowStock(ing) ? '#ff6348' : '#636e72', fontWeight: '600' }}>
-                    {ing.quantity} {ing.inventoryId?.unit}
-                  </span>
-                </div>
-              ))}
+            <h4 style={{ color: '#2d3436', marginBottom: '10px', fontWeight: '600', fontSize: '14px' }}>Ingredients:</h4>
+            {formData.ingredients.map((ingredient, index) => (
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '8px', marginBottom: '8px' }}>
+                <select
+                  value={ingredient.inventoryId}
+                  onChange={(e) => updateIngredient(index, 'inventoryId', e.target.value)}
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #dfe6e9',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Select Ingredient</option>
+                  {inventoryItems.map(inv => (
+                    <option key={inv._id} value={inv._id}>{inv.name} ({inv.quantity} {inv.unit})</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  placeholder="Quantity"
+                  value={ingredient.quantity}
+                  onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #dfe6e9',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+                {formData.ingredients.length > 1 && (
+                  <button
+                    onClick={() => removeIngredient(index)}
+                    style={{
+                      padding: '10px',
+                      background: '#ff4757',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <MdClose />
+                  </button>
+                )}
+              </div>
+            ))}
+            
+            <button
+              onClick={addIngredient}
+              style={{
+                padding: '8px 16px',
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                marginTop: '8px',
+                marginBottom: '16px',
+                fontSize: '13px'
+              }}
+            >
+              <MdAdd /> Add Ingredient
+            </button>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={addItem}
+                style={{
+                  padding: '10px 20px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}
+              >
+                {editingId ? 'Update Recipe' : 'Save Recipe'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  setFormData({ recipeName: '', variation: '', ingredients: [{ inventoryId: '', quantity: '' }] });
+                }}
+                style={{
+                  padding: '10px 20px',
+                  background: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
             </div>
           </motion.div>
-        ))}
-      </div>
+        )}
 
-      {items.length === 0 && !showForm && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '80px', background: 'white', borderRadius: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}
-        >
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}><MdInventory /></div>
-          <p style={{ fontSize: '20px', color: '#2d3436', fontWeight: '600' }}>No recipes yet</p>
-          <p style={{ fontSize: '14px', color: '#636e72', marginTop: '8px' }}>Click "Add Recipe" to get started!</p>
-        </motion.div>
-      )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '18px' }}>
+          {items.map((item) => (
+            <motion.div
+              key={item._id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.02, boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              style={{
+                background: 'white',
+                padding: '18px',
+                borderRadius: '12px',
+                boxShadow: '0 3px 10px rgba(0,0,0,0.09)',
+                border: '1px solid #e9ecef'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#2d3436', fontSize: '16px', fontWeight: '600' }}>{item.recipeName}</h3>
+                  {item.variation && <p style={{ margin: '4px 0 0 0', color: '#636e72', fontSize: '13px' }}>{item.variation}</p>}
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => editItem(item)}
+                    style={{
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '11px'
+                    }}
+                  >
+                    <MdEdit style={{ fontSize: '16px', verticalAlign: 'middle' }} />
+                  </button>
+                  <button
+                    onClick={() => deleteItem(item._id)}
+                    style={{
+                      background: '#ff4757',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '11px'
+                    }}
+                  >
+                    <MdDelete style={{ fontSize: '16px', verticalAlign: 'middle' }} />
+                  </button>
+                </div>
+              </div>
+              
+              <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '10px' }}>
+                <p style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', marginBottom: '8px' }}>Ingredients:</p>
+                {item.ingredients?.map((ing, idx) => (
+                  <div key={idx} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    padding: '6px 10px',
+                    marginBottom: '4px',
+                    background: '#f8f9fa',
+                    borderRadius: '6px'
+                  }}>
+                    <span style={{ fontSize: '13px', color: '#2d3436', fontWeight: '500' }}>
+                      {isLowStock(ing) && <BiSolidError style={{ color: '#ff4757', verticalAlign: 'middle', marginRight: '4px' }} />}
+                      {ing.inventoryId?.name}
+                    </span>
+                    <span style={{ fontSize: '13px', color: isLowStock(ing) ? '#ff4757' : '#636e72', fontWeight: '600' }}>
+                      {ing.quantity} {ing.inventoryId?.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {items.length === 0 && !showForm && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 100 }}
+            style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', maxWidth: '500px', margin: '60px auto' }}
+          >
+            <div style={{ fontSize: '48px', marginBottom: '12px', color: '#667eea', display: 'flex', justifyContent: 'center' }}><MdInventory /></div>
+            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No recipes yet</p>
+            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Click "Add Recipe" to get started!</p>
+          </motion.div>
+        )}
       </div>
-    </div>
+    </>
   );
 };
 
