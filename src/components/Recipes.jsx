@@ -9,7 +9,6 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [inventory, setInventory] = useState([]);
-  const [rawMaterials, setRawMaterials] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [cookingRecipe, setCookingRecipe] = useState(null);
   const [cookQuantities, setCookQuantities] = useState({});
@@ -20,24 +19,15 @@ const Recipes = () => {
   useEffect(() => {
     fetchRecipes();
     fetchInventory();
-    fetchRawMaterials();
   }, []);
 
-  // Show only raw materials as recipes
-  const allRecipes = rawMaterials.map(rm => ({
-    _id: rm._id,
-    title: rm.recipeName + (rm.variation ? ` (${rm.variation})` : ''),
-    ingredients: rm.ingredients,
-    isFromRawMaterial: true
+  // Show recipes from the recipes API
+  const allRecipes = recipes.filter(r => !r.status || r.status === 'cooking').map(r => ({
+    _id: r._id,
+    title: r.title,
+    ingredients: r.ingredients,
+    isFromRawMaterial: false
   }));
-
-  const fetchRawMaterials = async () => {
-    const res = await fetch(`${API_URL}/rawmaterials`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    const data = await res.json();
-    setRawMaterials(data);
-  };
 
   const fetchRecipes = async () => {
     const res = await fetch(`${API_URL}/recipes`, {
@@ -80,16 +70,23 @@ const Recipes = () => {
   };
 
   const createRecipe = async () => {
-    if (formData.title && formData.ingredients.length > 0) {
+    if (formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity)) {
       await fetch(`${API_URL}/recipes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          title: formData.title,
+          ingredients: formData.ingredients.map(ing => ({
+            inventoryId: ing.inventoryId,
+            quantity: parseFloat(ing.quantity),
+            unit: ing.unit
+          }))
+        })
       });
-      setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [] });
+      setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
       setShowForm(false);
       fetchRecipes();
       fetchInventory();
@@ -108,54 +105,46 @@ const Recipes = () => {
       setCookingRecipe(id);
       const quantity = cookQuantities[id] || 1;
       
-      if (isFromRawMaterial) {
-        const rm = rawMaterials.find(r => r._id === id);
-        if (!rm) {
-          alert('Recipe not found');
-          return;
-        }
-        
-        const createRes = await fetch(`${API_URL}/recipes`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            title: rm.recipeName + (rm.variation ? ` (${rm.variation})` : ''),
-            quantity: quantity,
-            ingredients: rm.ingredients.map(ing => ({
-              inventoryId: ing.inventoryId._id,
-              quantity: ing.quantity * quantity,
-              unit: ing.inventoryId.unit
-            }))
-          })
-        });
-        
-        const newRecipe = await createRes.json();
-        if (!createRes.ok) {
-          alert(newRecipe.error || 'Failed to create recipe');
-          return;
-        }
-        
-        const res = await fetch(`${API_URL}/recipes/${newRecipe._id}/cook`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}` 
-          }
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          alert(data.error || 'Failed to cook recipe');
-          return;
-        }
-        
-        alert(`Recipe added successfully!`);
-        await fetchRecipes();
-        await fetchInventory();
-        setCookQuantities({ ...cookQuantities, [id]: 1 });
+      const recipe = recipes.find(r => r._id === id);
+      if (!recipe) {
+        alert('Recipe not found');
+        return;
       }
+      
+      // Update recipe with quantity
+      await fetch(`${API_URL}/recipes/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          quantity: quantity,
+          ingredients: recipe.ingredients.map(ing => ({
+            inventoryId: ing.inventoryId._id || ing.inventoryId,
+            quantity: ing.quantity * quantity,
+            unit: ing.unit
+          }))
+        })
+      });
+      
+      const res = await fetch(`${API_URL}/recipes/${id}/cook`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}` 
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to cook recipe');
+        return;
+      }
+      
+      alert(`Recipe cooked successfully!`);
+      await fetchRecipes();
+      await fetchInventory();
+      setCookQuantities({ ...cookQuantities, [id]: 1 });
     } catch (error) {
       alert('Error cooking recipe: ' + error.message);
     } finally {
@@ -194,7 +183,10 @@ const Recipes = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm);
+              setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+            }}
             style={{
               padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -221,103 +213,177 @@ const Recipes = () => {
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
       }}>
         <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Recipe">
-          {rawMaterials.length > 0 ? (
-            <div>
-              <p style={{ fontSize: '14px', color: '#636e72', marginBottom: '16px' }}>Select a recipe to add from your raw materials:</p>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>Recipe Name</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>Ingredients</th>
-                      <th style={{ padding: '12px', textAlign: 'center', fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rawMaterials.filter(rm => {
-                      // Only show raw materials that are NOT in the recipe table
-                      const recipeName = rm.recipeName + (rm.variation ? ` (${rm.variation})` : '');
-                      const isAlreadyAdded = allRecipes.some(r => r.title === recipeName);
-                      return !isAlreadyAdded;
-                    }).map(rm => {
-                      const recipe = {
-                        _id: rm._id,
-                        title: rm.recipeName + (rm.variation ? ` (${rm.variation})` : ''),
-                        ingredients: rm.ingredients,
-                        isFromRawMaterial: true
-                      };
-                      const canCook = canCookRecipe(recipe);
-                      return (
-                        <tr key={rm._id} style={{ borderBottom: '1px solid #e9ecef' }}>
-                          <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>
-                            {rm.recipeName} {rm.variation && `(${rm.variation})`}
-                          </td>
-                          <td style={{ padding: '12px', fontSize: '12px', color: '#636e72' }}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                              {rm.ingredients?.map((ing, idx) => {
-                                const invItem = inventory.find(i => i._id === ing.inventoryId?._id);
-                                const hasEnough = invItem && invItem.quantity >= ing.quantity;
-                                return (
-                                  <span key={idx} style={{ 
-                                    background: hasEnough ? '#e8f5e9' : '#ffebee', 
-                                    color: hasEnough ? '#2e7d32' : '#c62828',
-                                    padding: '3px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '11px',
-                                    fontWeight: '600',
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    {ing.inventoryId?.name || 'Unknown'}: {ing.quantity}{ing.unit}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <button
-                              onClick={() => {
-                                if (canCook) {
-                                  setShowForm(false);
-                                  cookRecipe(rm._id, true);
-                                }
-                              }}
-                              disabled={!canCook}
-                              style={{
-                                padding: '8px 16px',
-                                background: canCook ? '#667eea' : '#95a5a6',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: canCook ? 'pointer' : 'not-allowed',
-                                fontWeight: '600',
-                                fontSize: '12px',
-                                opacity: canCook ? 1 : 0.6
-                              }}
-                            >
-                              Add
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+          <div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#2d3436', marginBottom: '8px' }}>Recipe Name</label>
+              <input
+                type="text"
+                placeholder="Enter recipe name"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #e9ecef',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'border-color 0.3s',
+                  color: '#2d3436',
+                  background: 'white'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>Ingredients</label>
+                <button
+                  onClick={addIngredient}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 8px rgba(102,126,234,0.3)'
+                  }}
+                >
+                  <MdAdd style={{ fontSize: '16px' }} /> Add Ingredient
+                </button>
               </div>
-              {rawMaterials.filter(rm => {
-                const recipeName = rm.recipeName + (rm.variation ? ` (${rm.variation})` : '');
-                const isAlreadyAdded = allRecipes.some(r => r.title === recipeName);
-                return !isAlreadyAdded;
-              }).length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                  <p style={{ fontSize: '16px', color: '#636e72', margin: 0 }}>All raw materials have been added to recipes.</p>
-                </div>
-              )}
+              
+              <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '4px' }}>
+                {formData.ingredients.map((ingredient, index) => (
+                  <div key={index} style={{ 
+                    background: '#f8f9fa', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    marginBottom: '10px',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '600', color: '#667eea' }}>Ingredient {index + 1}</span>
+                      {formData.ingredients.length > 1 && (
+                        <button
+                          onClick={() => removeIngredient(index)}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#ff4757',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                        >
+                          <MdClose style={{ fontSize: '14px' }} /> Remove
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#636e72', marginBottom: '4px' }}>Select Item</label>
+                        <select
+                          value={ingredient.inventoryId}
+                          onChange={(e) => updateIngredient(index, 'inventoryId', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #dfe6e9',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            background: 'white',
+                            color: '#2d3436'
+                          }}
+                        >
+                          <option value="">Choose ingredient...</option>
+                          {inventory.map(inv => (
+                            <option key={inv._id} value={inv._id}>{inv.name} ({inv.quantity} {inv.unit})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#636e72', marginBottom: '4px' }}>Quantity</label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={ingredient.quantity}
+                          onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #dfe6e9',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            outline: 'none',
+                            background: 'white',
+                            color: '#2d3436'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <p style={{ fontSize: '16px', color: '#636e72', margin: 0 }}>No raw materials available. Please add raw materials first.</p>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e9ecef' }}>
+              <button
+                onClick={createRecipe}
+                disabled={!formData.title || formData.ingredients.length === 0 || !formData.ingredients.every(ing => ing.inventoryId && ing.quantity)}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  background: formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity) 
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                    : '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity) ? 'pointer' : 'not-allowed',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+                  opacity: formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity) ? 1 : 0.6
+                }}
+              >
+                Save Recipe
+              </button>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+                }}
+                style={{
+                  padding: '12px 20px',
+                  background: '#e9ecef',
+                  color: '#2d3436',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
             </div>
-          )}
+          </div>
         </Modal>
 
         <Modal isOpen={showCookModal} onClose={() => setShowCookModal(false)} title="Cook Recipe">
@@ -404,7 +470,6 @@ const Recipes = () => {
               </thead>
               <tbody>
                 {allRecipes.map((recipe) => {
-                  const isCooked = recipes.some(r => r.title === recipe.title && (r.status === 'cooking' || r.status === 'cooked'));
                   return (
                     <tr
                       key={recipe._id}

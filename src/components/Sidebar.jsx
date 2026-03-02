@@ -10,8 +10,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
     { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
     { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
-    { id: 'inventory', label: 'Inventory', Icon: MdInventory, color: '#667eea' },
-    { id: 'rawmaterials', label: 'Raw Materials', Icon: MdFactory, color: '#667eea' },
+    { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
     { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
   ];
 

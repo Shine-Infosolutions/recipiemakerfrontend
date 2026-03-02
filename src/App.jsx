@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MdRestaurantMenu, MdInventory, MdFactory, MdSettings, MdDashboard } from 'react-icons/md';
+import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
 import Register from './components/Register';
@@ -8,7 +8,6 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Inventory from './components/inventory/Inventory';
 import Recipes from './components/Recipes';
-import RawMaterials from './components/RawMaterials';
 import Cooking from './components/Cooking';
 import SemiFinished from './components/SemiFinished';
 import ChangePassword from './components/ChangePassword';
@@ -57,8 +56,7 @@ const App = () => {
     { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
     { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
-    { id: 'inventory', label: 'Inventory', Icon: MdInventory, color: '#667eea' },
-    { id: 'rawmaterials', label: 'Materials', Icon: MdFactory, color: '#667eea' },
+    { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
     { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
   ];
 
@@ -87,7 +85,6 @@ const App = () => {
           {activeTab === 'recipes' && <Recipes />}
           {activeTab === 'cooking' && <Cooking />}
           {activeTab === 'semifinished' && <SemiFinished />}
-          {activeTab === 'rawmaterials' && <RawMaterials />}
           {activeTab === 'settings' && <ChangePassword />}
         </div>
       </div>
