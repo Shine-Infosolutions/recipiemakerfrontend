@@ -169,7 +169,7 @@ const Dashboard = () => {
           <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth $${totalInventoryValue.toFixed(2)}`} />
           <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ff4757" subtitle="Items below 10 units" />
           <StatCard icon={<MdRestaurantMenu />} title="Raw Materials" value={rawMaterials.length} color="#ffa502" subtitle="Recipe templates" />
-          <StatCard icon={<GiCookingPot />} title="Cooking" value={cookingRecipes} color="#ffa502" subtitle="In progress" />
+          <StatCard icon={<GiCookingPot />} title="Finished Goods" value={cookingRecipes} color="#ffa502" subtitle="In progress" />
           <StatCard icon={<MdRestaurant />} title="Cooked" value={cookedRecipes} color="#00b894" subtitle="Completed recipes" />
           <StatCard icon={<MdTrendingUp />} title="Cancelled" value={cancelledRecipes} color="#ff4757" subtitle="Semi-finished" />
           <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From inventory" />
@@ -349,10 +349,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Cooking Recipes Section */}
+          {/* Finished Goods Section */}
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <GiCookingPot style={{ color: '#ffa502' }} /> Cooking ({cookingRecipes})
+              <GiCookingPot style={{ color: '#ffa502' }} /> Finished Goods ({cookingRecipes})
             </h3>
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {filteredRecipes.filter(r => r.status === 'cooking').slice(0, 10).map(recipe => (
@@ -371,7 +371,7 @@ const Dashboard = () => {
                 </div>
               ))}
               {cookingRecipes === 0 && (
-                <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No recipes cooking</p>
+                <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No finished goods</p>
               )}
             </div>
           </div>

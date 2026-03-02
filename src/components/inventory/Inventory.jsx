@@ -250,68 +250,44 @@ const Inventory = () => {
           </motion.div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {items.map((item) => (
-            <motion.div
-              key={item._id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4, boxShadow: '0 8px 16px rgba(0,0,0,0.12)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              style={{
-                background: 'white',
-                padding: '16px',
-                borderRadius: '10px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: '0 0 6px 0', color: '#2d3436', fontSize: '16px', fontWeight: '600' }}>{item.name}</h3>
-                <p style={{ margin: '0 0 6px 0', color: '#636e72', fontSize: '14px', fontWeight: '500' }}>
-                  {item.quantity} {item.unit} {item.price > 0 && `• ₹${item.price}`}
-                </p>
-                {item.category && <span style={{ fontSize: '11px', color: '#667eea', display: 'inline-block', background: '#f0f0ff', padding: '3px 10px', borderRadius: '10px', fontWeight: '600' }}><MdRestaurantMenu style={{ verticalAlign: 'middle' }} /> {item.category}</span>}
-              </div>
-              <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
-                <button
-                  onClick={() => editItem(item)}
-                  style={{
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    flex: 1
-                  }}
-                >
-                  <MdEdit style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }} /> Edit
-                </button>
-                <button
-                  onClick={() => deleteItem(item._id)}
-                  style={{
-                    background: '#ff4757',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    flex: 1
-                  }}
-                >
-                  <MdDelete style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }} /> Delete
-                </button>
-              </div>
-            </motion.div>
-          ))}
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <table className="table w-full">
+            <thead style={{ backgroundColor: '#f1f3f5' }}>
+              <tr>
+                <th style={{ color: '#2d3436' }}>Name</th>
+                <th style={{ color: '#2d3436' }}>Category</th>
+                <th style={{ color: '#2d3436' }}>Quantity</th>
+                <th style={{ color: '#2d3436' }}>Unit</th>
+                <th style={{ color: '#2d3436' }}>Price</th>
+                <th style={{ color: '#2d3436', textAlign: 'center' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <td className="font-semibold" style={{ color: '#2d3436' }}>{item.name}</td>
+                  <td>
+                    {item.category && (
+                      <span className="badge badge-primary badge-sm">{item.category}</span>
+                    )}
+                  </td>
+                  <td className="font-bold" style={{ color: '#2d3436' }}>{item.quantity}</td>
+                  <td style={{ color: '#2d3436' }}>{item.unit}</td>
+                  <td style={{ color: '#2d3436' }}>{item.price > 0 ? `₹${item.price}` : '-'}</td>
+                  <td>
+                    <div className="flex gap-2 justify-center">
+                      <button onClick={() => editItem(item)} className="btn btn-sm btn-primary">
+                        <MdEdit className="text-base" /> Edit
+                      </button>
+                      <button onClick={() => deleteItem(item._id)} className="btn btn-sm btn-error">
+                        <MdDelete className="text-base" /> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {items.length === 0 && !showForm && (

@@ -55,7 +55,7 @@ const App = () => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
     { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
-    { id: 'cooking', label: 'Cooking', Icon: GiCookingPot, color: '#667eea' },
+    { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
     { id: 'inventory', label: 'Inventory', Icon: MdInventory, color: '#667eea' },
     { id: 'rawmaterials', label: 'Materials', Icon: MdFactory, color: '#667eea' },
@@ -63,10 +63,25 @@ const App = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#f5f5f5', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {!isMobile && <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />}
-        <div style={{ flex: 1, overflow: 'auto', paddingBottom: isMobile ? '80px' : '0' }}>
+    <div className="drawer lg:drawer-open">
+      <input id="my-drawer" type="checkbox" className="drawer-toggle" />
+      <div className="drawer-content flex flex-col">
+        {/* Navbar for mobile */}
+        <div className="navbar bg-base-100 shadow-lg lg:hidden">
+          <div className="flex-none">
+            <label htmlFor="my-drawer" className="btn btn-square btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-6 h-6 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </label>
+          </div>
+          <div className="flex-1">
+            <span className="text-xl font-bold">🍳 Recipe Maker</span>
+          </div>
+        </div>
+
+        {/* Page content */}
+        <div className="flex-1 overflow-auto bg-base-200">
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'inventory' && <Inventory />}
           {activeTab === 'recipes' && <Recipes />}
@@ -76,55 +91,51 @@ const App = () => {
           {activeTab === 'settings' && <ChangePassword />}
         </div>
       </div>
-      {isMobile && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)',
-          display: 'flex',
-          justifyContent: 'space-around',
-          padding: '10px 0 14px 0',
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
-          zIndex: 1000,
-          borderTop: '2px solid #e9ecef'
-        }}>
-          {navItems.map((item) => (
-            <div 
-              key={item.id}
-              onClick={() => setActiveTab(item.id)} 
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                cursor: 'pointer', 
-                flex: 1, 
-                padding: '6px',
-                transition: 'all 0.3s ease',
-                transform: activeTab === item.id ? 'scale(1.1)' : 'scale(1)'
-              }}
+
+      {/* Sidebar */}
+      <div className="drawer-side z-50">
+        <label htmlFor="my-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
+        <div className="min-h-full w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col shadow-2xl">
+          {/* Sidebar header */}
+          <div className="p-6 border-b border-slate-700">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span className="text-3xl">🍳</span>
+              <span>Recipe Maker</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-2">Manage your kitchen</p>
+          </div>
+
+          {/* Menu items */}
+          <ul className="menu p-4 flex-1 gap-1">
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <a
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    activeTab === item.id
+                      ? 'bg-primary text-white shadow-lg scale-105'
+                      : 'text-slate-300 hover:bg-slate-700 hover:text-white hover:scale-102'
+                  }`}
+                >
+                  <item.Icon className="text-xl" />
+                  <span className="font-medium">{item.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          {/* Logout button */}
+          <div className="p-4 border-t border-slate-700">
+            <button
+              onClick={handleLogout}
+              className="btn btn-error w-full gap-2 shadow-lg"
             >
-              <item.Icon style={{ 
-                fontSize: '24px', 
-                color: activeTab === item.id ? item.color : '#95a5a6',
-                transition: 'all 0.3s ease'
-              }} />
-              <span style={{ 
-                fontSize: '11px', 
-                color: activeTab === item.id ? item.color : '#95a5a6', 
-                fontWeight: activeTab === item.id ? '700' : '500', 
-                marginTop: '4px',
-                transition: 'all 0.3s ease'
-              }}>{item.label}</span>
-            </div>
-          ))}
-          <div onClick={handleLogout} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', flex: 1, padding: '6px' }}>
-            <BiLogOut style={{ fontSize: '24px', color: '#e74c3c' }} />
-            <span style={{ fontSize: '11px', color: '#e74c3c', marginTop: '4px', fontWeight: '500' }}>Logout</span>
+              <BiLogOut className="text-lg" />
+              Logout
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -8,7 +8,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
     { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
-    { id: 'cooking', label: 'Cooking', Icon: GiCookingPot, color: '#667eea' },
+    { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
     { id: 'inventory', label: 'Inventory', Icon: MdInventory, color: '#667eea' },
     { id: 'rawmaterials', label: 'Raw Materials', Icon: MdFactory, color: '#667eea' },

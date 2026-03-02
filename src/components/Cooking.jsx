@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdRestaurant, MdDelete } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
+import Modal from './Modal';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -10,6 +11,9 @@ const Cooking = () => {
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showRestockModal, setShowRestockModal] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
 
   useEffect(() => {
     fetchCookedRecipes();
@@ -28,6 +32,9 @@ const Cooking = () => {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     return cookedRecipes.filter(recipe => {
+      // Only show cooking and cooked recipes, exclude cancelled
+      if (recipe.status === 'cancelled') return false;
+      
       if (!recipe.createdAt) return false;
       const recipeDate = new Date(recipe.createdAt);
       
@@ -66,11 +73,20 @@ const Cooking = () => {
   };
 
   const cancelRecipe = async (recipe) => {
-    if (!window.confirm('Cancel this recipe? Ingredients will be restocked to inventory.')) return;
-    
-    // Restock ingredients
-    for (const ing of recipe.ingredients) {
-      if (ing.inventoryId && ing.inventoryId._id) {
+    setSelectedRecipe(recipe);
+    setSelectedIngredients(recipe.ingredients.map(ing => ing.inventoryId._id));
+    setShowRestockModal(true);
+  };
+
+  const confirmCancelRecipe = async () => {
+    if (selectedIngredients.length === 0) {
+      alert('Please select at least one ingredient to restock');
+      return;
+    }
+
+    // Restock only selected ingredients
+    for (const ing of selectedRecipe.ingredients) {
+      if (ing.inventoryId && ing.inventoryId._id && selectedIngredients.includes(ing.inventoryId._id)) {
         await fetch(`${API_URL}/inventory/${ing.inventoryId._id}`, {
           method: 'PUT',
           headers: {
@@ -88,9 +104,24 @@ const Cooking = () => {
       }
     }
     
-    // Update status to cancelled
-    await updateRecipeStatus(recipe._id, 'cancelled');
-    alert('Recipe cancelled and ingredients restocked!');
+    // Update status to cancelled and save restocked ingredients
+    await fetch(`${API_URL}/recipes/${selectedRecipe._id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ 
+        status: 'cancelled',
+        restockedIngredients: selectedIngredients
+      })
+    });
+    
+    setShowRestockModal(false);
+    setSelectedRecipe(null);
+    setSelectedIngredients([]);
+    fetchCookedRecipes();
+    alert('Recipe cancelled and selected ingredients restocked!');
   };
 
   const getStatusColor = (status) => {
@@ -104,10 +135,10 @@ const Cooking = () => {
 
   const getStatusLabel = (status) => {
     switch(status) {
-      case 'cooking': return 'Cooking';
-      case 'cooked': return 'Cooked';
-      case 'cancelled': return 'Cancelled (Semi-finished)';
-      default: return 'Cooking';
+      case 'cooking': return 'In Progress';
+      case 'cooked': return 'Finished Goods';
+      case 'cancelled': return 'Semi-Finished Goods';
+      default: return 'In Progress';
     }
   };
 
@@ -129,9 +160,9 @@ const Cooking = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Cooking History</span>
+              <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Finished Goods</span>
             </h1>
-            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>View your cooked recipes</p>}
+            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>View your finished goods</p>}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <select
@@ -190,119 +221,67 @@ const Cooking = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {filteredRecipes.map((recipe) => (
-            <motion.div
-              key={recipe._id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -2, boxShadow: '0 6px 16px rgba(0,0,0,0.12)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              style={{
-                background: 'white',
-                padding: '16px',
-                borderRadius: '10px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px'
-              }}
-            >
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, color: '#2d3436', fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <MdRestaurant style={{ fontSize: '18px', color: '#667eea' }} /> {recipe.title}
-                  </h3>
-                  {recipe.quantity > 1 && (
-                    <span style={{ fontSize: '11px', color: '#667eea', background: '#f0f3ff', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>
-                      x{recipe.quantity}
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <table className="table">
+            <thead style={{ backgroundColor: '#f1f3f5' }}>
+              <tr>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Recipe Name</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Quantity</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Status</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Date</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRecipes.map((recipe) => (
+                <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{recipe.title}</td>
+                  <td style={{ padding: '16px' }}>
+                    {recipe.quantity > 1 && (
+                      <span style={{ fontSize: '11px', color: '#00b894', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>x{recipe.quantity}</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {recipe.ingredients?.map((ing, idx) => (
+                        <span key={idx} style={{ fontSize: '11px', color: '#636e72', background: '#f8f9fa', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                          {ing.inventoryId?.name || 'Unknown'}: {ing.quantity}{ing.unit}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      color: recipe.status === 'cooking' ? '#ffa502' : '#00b894',
+                      background: recipe.status === 'cooking' ? '#fff3e0' : '#e8f5e9',
+                      padding: '6px 12px',
+                      borderRadius: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {getStatusLabel(recipe.status || 'cooking')}
                     </span>
-                  )}
-                  <span style={{ 
-                    fontSize: '11px', 
-                    color: 'white', 
-                    background: getStatusColor(recipe.status || 'cooking'), 
-                    padding: '4px 10px', 
-                    borderRadius: '12px', 
-                    fontWeight: '600' 
-                  }}>
-                    {getStatusLabel(recipe.status || 'cooking')}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {recipe.ingredients?.map((ing, idx) => (
-                    <span key={idx} style={{ fontSize: '12px', color: '#636e72', background: '#f8f9fa', padding: '4px 10px', borderRadius: '6px', fontWeight: '500' }}>
-                      {ing.inventoryId?.name || 'Unknown'} - {ing.quantity} {ing.unit}
-                    </span>
-                  ))}
-                </div>
-                {recipe.createdAt && (
-                  <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#95a5a6', fontWeight: '500' }}>
-                    Cooked: {new Date(recipe.createdAt).toLocaleString()}
-                  </p>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {(!recipe.status || recipe.status === 'cooking') && (
-                  <>
-                    <button
-                      onClick={() => updateRecipeStatus(recipe._id, 'cooked')}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#00b894',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        fontSize: '12px',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      Mark Cooked
-                    </button>
-                    <button
-                      onClick={() => cancelRecipe(recipe)}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#ffa502',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        fontSize: '12px',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-                {recipe.status === 'cooked' && (
-                  <button
-                    onClick={() => updateRecipeStatus(recipe._id, 'cooking')}
-                    style={{
-                      padding: '8px 12px',
-                      background: '#ffa502',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '12px',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Mark Cooking
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                  </td>
+                  <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>
+                    {recipe.createdAt && new Date(recipe.createdAt).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    {(!recipe.status || recipe.status === 'cooking') && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => updateRecipeStatus(recipe._id, 'cooked')} style={{ padding: '8px 12px', background: '#00b894', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                          Finished
+                        </button>
+                        <button onClick={() => cancelRecipe(recipe)} style={{ padding: '8px 12px', background: '#ffa502', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                          Semi-Finished
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {filteredRecipes.length === 0 && (
@@ -318,6 +297,71 @@ const Cooking = () => {
           </motion.div>
         )}
       </div>
+
+      <Modal isOpen={showRestockModal} onClose={() => setShowRestockModal(false)} title="Select Ingredients to Restock">
+        {selectedRecipe && (
+          <div>
+            <p style={{ fontSize: '14px', color: '#636e72', marginBottom: '16px' }}>Select which ingredients to restock to inventory:</p>
+            <div style={{ marginBottom: '20px' }}>
+              {selectedRecipe.ingredients?.map((ing, idx) => (
+                <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIngredients.includes(ing.inventoryId._id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIngredients([...selectedIngredients, ing.inventoryId._id]);
+                      } else {
+                        setSelectedIngredients(selectedIngredients.filter(id => id !== ing.inventoryId._id));
+                      }
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', flex: 1 }}>
+                    {ing.inventoryId?.name || 'Unknown'}
+                  </span>
+                  <span style={{ fontSize: '13px', color: '#636e72', fontWeight: '600' }}>
+                    {ing.quantity} {ing.unit}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={confirmCancelRecipe}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  background: 'linear-gradient(135deg, #ffa502 0%, #ff8c00 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}
+              >
+                Confirm Restock
+              </button>
+              <button
+                onClick={() => setShowRestockModal(false)}
+                style={{
+                  padding: '12px 20px',
+                  background: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 };

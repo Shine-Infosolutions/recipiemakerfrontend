@@ -309,84 +309,59 @@ const RawMaterials = () => {
           </motion.div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '18px' }}>
-          {items.map((item) => (
-            <motion.div
-              key={item._id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.02, boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              style={{
-                background: 'white',
-                padding: '18px',
-                borderRadius: '12px',
-                boxShadow: '0 3px 10px rgba(0,0,0,0.09)',
-                border: '1px solid #e9ecef'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-                <div>
-                  <h3 style={{ margin: 0, color: '#2d3436', fontSize: '16px', fontWeight: '600' }}>{item.recipeName}</h3>
-                  {item.variation && <p style={{ margin: '4px 0 0 0', color: '#636e72', fontSize: '13px' }}>{item.variation}</p>}
-                </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={() => editItem(item)}
-                    style={{
-                      background: '#667eea',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '6px 10px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '11px'
-                    }}
-                  >
-                    <MdEdit style={{ fontSize: '16px', verticalAlign: 'middle' }} />
-                  </button>
-                  <button
-                    onClick={() => deleteItem(item._id)}
-                    style={{
-                      background: '#ff4757',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '6px 10px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '11px'
-                    }}
-                  >
-                    <MdDelete style={{ fontSize: '16px', verticalAlign: 'middle' }} />
-                  </button>
-                </div>
-              </div>
-              
-              <div style={{ borderTop: '1px solid #e9ecef', paddingTop: '10px' }}>
-                <p style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', marginBottom: '8px' }}>Ingredients:</p>
-                {item.ingredients?.map((ing, idx) => (
-                  <div key={idx} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    padding: '6px 10px',
-                    marginBottom: '4px',
-                    background: '#f8f9fa',
-                    borderRadius: '6px'
-                  }}>
-                    <span style={{ fontSize: '13px', color: '#2d3436', fontWeight: '500' }}>
-                      {isLowStock(ing) && <BiSolidError style={{ color: '#ff4757', verticalAlign: 'middle', marginRight: '4px' }} />}
-                      {ing.inventoryId?.name}
-                    </span>
-                    <span style={{ fontSize: '13px', color: isLowStock(ing) ? '#ff4757' : '#636e72', fontWeight: '600' }}>
-                      {ing.quantity} {ing.inventoryId?.unit}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <table className="table">
+            <thead style={{ backgroundColor: '#f1f3f5' }}>
+              <tr>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Recipe Name</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Variation</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{item.recipeName}</td>
+                  <td style={{ padding: '16px' }}>
+                    {item.variation && (
+                      <span style={{ fontSize: '11px', color: '#667eea', background: '#e8eaf6', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>{item.variation}</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {item.ingredients?.map((ing, idx) => (
+                        <span key={idx} style={{ 
+                          fontSize: '11px', 
+                          color: isLowStock(ing) ? '#c62828' : '#636e72',
+                          background: isLowStock(ing) ? '#ffebee' : '#f8f9fa',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {isLowStock(ing) && <BiSolidError />}
+                          {ing.inventoryId?.name}: {ing.quantity} {ing.inventoryId?.unit}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => editItem(item)} style={{ padding: '8px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MdEdit style={{ fontSize: '16px' }} /> Edit
+                      </button>
+                      <button onClick={() => deleteItem(item._id)} style={{ padding: '8px 12px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MdDelete style={{ fontSize: '16px' }} /> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {items.length === 0 && !showForm && (
