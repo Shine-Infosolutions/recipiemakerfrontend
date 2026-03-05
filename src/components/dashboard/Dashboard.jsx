@@ -281,7 +281,7 @@ const Dashboard = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}
         >
-          <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth $${totalInventoryValue.toFixed(2)}`} index={0} />
+          <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth ₹${totalInventoryValue.toFixed(2)}`} index={0} />
           <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ff4757" subtitle="Items below 10 units" index={1} />
           <StatCard icon={<MdRestaurantMenu />} title="Total Recipes" value={recipes.length} color="#667eea" subtitle="Available templates" index={2} />
           <StatCard icon={<MdRestaurant />} title="Finished Goods" value={cookedItems.filter(item => item.status === 'finished').length} color="#00b894" subtitle="Completed items" index={3} />
@@ -351,7 +351,7 @@ const Dashboard = () => {
                     <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: item.quantity < 10 ? '#ff4757' : '#00b894' }}>
                       {item.quantity} {item.unit}
                     </p>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>${item.price || 0}</p>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>₹{item.price || 0}</p>
                   </div>
                 </div>
               ))}
@@ -375,7 +375,7 @@ const Dashboard = () => {
                 <div key={cat} style={{ padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
                   <p style={{ margin: 0, fontSize: '12px', fontWeight: '600', color: '#2d3436', textTransform: 'capitalize' }}>{cat}</p>
                   <p style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: '700', color: '#667eea' }}>{items.length} items</p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>${totalValue.toFixed(2)}</p>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>₹{totalValue.toFixed(2)}</p>
                 </div>
               );
             })}
