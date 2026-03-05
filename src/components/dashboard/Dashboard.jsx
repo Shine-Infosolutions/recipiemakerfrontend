@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdDashboard, MdInventory, MdRestaurant, MdRestaurantMenu, MdTrendingUp, MdTrendingDown, MdAttachMoney } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
+import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -13,12 +14,14 @@ const Dashboard = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
     const [invRes, recRes, rmRes] = await Promise.all([
       fetch(`${API_URL}/inventory`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
       fetch(`${API_URL}/recipes`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
@@ -27,6 +30,7 @@ const Dashboard = () => {
     setInventory(await invRes.json());
     setRecipes(await recRes.json());
     setRawMaterials(await rmRes.json());
+    setLoading(false);
   };
 
   const filterRecipesByDate = () => {
@@ -164,6 +168,8 @@ const Dashboard = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
       }}>
+        {loading ? <Loading /> : (
+        <>
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth $${totalInventoryValue.toFixed(2)}`} />
@@ -423,6 +429,8 @@ const Dashboard = () => {
             })}
           </div>
         </div>
+        </>
+        )}
       </div>
     </>
   );

@@ -2,26 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdRestaurant, MdDelete } from 'react-icons/md';
 import { BiError } from 'react-icons/bi';
+import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
 const SemiFinished = () => {
   const [cancelledRecipes, setCancelledRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchCancelledRecipes();
   }, []);
 
   const fetchCancelledRecipes = async () => {
-    const res = await fetch(`${API_URL}/recipes`, {
+    setLoading(true);
+    const res = await fetch(`${API_URL}/semi-finished-goods`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
     const data = await res.json();
-    setCancelledRecipes(data.filter(recipe => recipe.status === 'cancelled'));
+    setCancelledRecipes(data);
+    setLoading(false);
   };
 
   const deleteRecipe = async (id) => {
-    await fetch(`${API_URL}/recipes/${id}`, {
+    await fetch(`${API_URL}/semi-finished-goods/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
@@ -57,6 +61,8 @@ const SemiFinished = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
       }}>
+        {loading ? <Loading /> : (
+        <>
         <div className="overflow-x-auto bg-white rounded-lg shadow">
           <table className="table">
             <thead style={{ backgroundColor: '#f1f3f5' }}>
@@ -75,7 +81,7 @@ const SemiFinished = () => {
                   <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {recipe.ingredients?.map((ing, idx) => {
-                        const wasRestocked = recipe.restockedIngredients?.includes(ing.inventoryId?._id);
+                        const wasRestocked = recipe.restockedIngredients?.includes(ing.inventoryId?.toString() || ing.inventoryId);
                         return (
                           <span key={idx} style={{ 
                             fontSize: '11px', 
@@ -86,7 +92,7 @@ const SemiFinished = () => {
                             fontWeight: '600',
                             border: wasRestocked ? '1px solid #00b894' : '1px solid #e9ecef'
                           }}>
-                            {wasRestocked && '✓ '}{ing.inventoryId?.name || 'Unknown'}: {ing.quantity}{ing.unit}
+                            {wasRestocked && '✓ '}{ing.name || 'Unknown'}: {ing.quantity}{ing.unit}
                           </span>
                         );
                       })}
@@ -122,6 +128,8 @@ const SemiFinished = () => {
             <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No cancelled recipes</p>
             <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Cancelled recipes will appear here</p>
           </motion.div>
+        )}
+        </>
         )}
       </div>
     </>

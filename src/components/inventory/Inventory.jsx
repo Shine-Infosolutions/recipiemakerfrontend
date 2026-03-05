@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdKitchen, MdEdit, MdDelete, MdRestaurantMenu } from 'react-icons/md';
+import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -9,17 +10,20 @@ const Inventory = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', quantity: '', unit: '', category: '', price: '' });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchItems();
   }, []);
 
   const fetchItems = async () => {
+    setLoading(true);
     const res = await fetch(`${API_URL}/inventory`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
     const data = await res.json();
     setItems(data);
+    setLoading(false);
   };
 
   const addItem = async () => {
@@ -115,6 +119,8 @@ const Inventory = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
       }}>
+        {loading ? <Loading /> : (
+        <>
         {showForm && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -301,6 +307,8 @@ const Inventory = () => {
             <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>Your raw materials list is empty</p>
             <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Click "Add Item" to start managing your raw materials!</p>
           </motion.div>
+        )}
+        </>
         )}
       </div>
     </>

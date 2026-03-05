@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
+import { FaFire } from 'react-icons/fa';
 import Register from './components/Register';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
+import Dashboard from './components/dashboard/Dashboard';
 import Inventory from './components/inventory/Inventory';
-import Recipes from './components/Recipes';
-import Cooking from './components/Cooking';
-import SemiFinished from './components/SemiFinished';
+import Recipes from './components/recipes/Recipes';
+import InProgress from './components/cooking/InProgress';
+import Cooking from './components/cooking/Cooking';
+import SemiFinished from './components/semifinished/SemiFinished';
 import ChangePassword from './components/ChangePassword';
 
 const App = () => {
@@ -54,6 +56,7 @@ const App = () => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
     { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+    { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
     { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
     { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
@@ -83,6 +86,7 @@ const App = () => {
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'inventory' && <Inventory />}
           {activeTab === 'recipes' && <Recipes />}
+          {activeTab === 'inprogress' && <InProgress />}
           {activeTab === 'cooking' && <Cooking />}
           {activeTab === 'semifinished' && <SemiFinished />}
           {activeTab === 'settings' && <ChangePassword />}

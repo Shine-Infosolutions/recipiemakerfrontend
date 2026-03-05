@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdRestaurant, MdPerson, MdTimer, MdRestaurantMenu, MdClose, MdAdd, MdDelete } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
-import Modal from './Modal';
+import Modal from '../common/Modal';
+import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -15,6 +16,7 @@ const Recipes = () => {
   const [showCookModal, setShowCookModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [formData, setFormData] = useState({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [] });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchRecipes();
@@ -30,11 +32,13 @@ const Recipes = () => {
   }));
 
   const fetchRecipes = async () => {
+    setLoading(true);
     const res = await fetch(`${API_URL}/recipes`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     });
     const data = await res.json();
     setRecipes(data);
+    setLoading(false);
   };
 
   const fetchInventory = async () => {
@@ -111,29 +115,17 @@ const Recipes = () => {
         return;
       }
       
-      // Update recipe with quantity
-      await fetch(`${API_URL}/recipes/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          quantity: quantity,
-          ingredients: recipe.ingredients.map(ing => ({
-            inventoryId: ing.inventoryId._id || ing.inventoryId,
-            quantity: ing.quantity * quantity,
-            unit: ing.unit
-          }))
-        })
-      });
-      
-      const res = await fetch(`${API_URL}/recipes/${id}/cook`, {
+      // Create cooked item
+      const res = await fetch(`${API_URL}/cooked-items`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}` 
-        }
+        },
+        body: JSON.stringify({
+          recipeId: id,
+          quantity: quantity
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -212,6 +204,8 @@ const Recipes = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
       }}>
+        {loading ? <Loading /> : (
+        <>
         <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Recipe">
           <div>
             <div style={{ marginBottom: '20px' }}>
@@ -557,6 +551,8 @@ const Recipes = () => {
             <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No recipes yet</p>
             <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Click "Add Recipe" to create your first recipe!</p>
           </motion.div>
+        )}
+        </>
         )}
       </div>
     </>
