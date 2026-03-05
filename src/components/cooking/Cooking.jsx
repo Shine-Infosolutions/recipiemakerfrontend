@@ -19,11 +19,23 @@ const Cooking = () => {
 
   const fetchCookedRecipes = async () => {
     setLoading(true);
-    const res = await fetch(`${API_URL}/finished-goods`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    const data = await res.json();
-    setCookedRecipes(data);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch(`${API_URL}/cooked-items`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setCookedRecipes(data.filter(item => item.status === 'finished'));
+    } catch (error) {
+      console.error('Error:', error);
+      setCookedRecipes([]);
+    }
     setLoading(false);
   };
 
@@ -60,95 +72,17 @@ const Cooking = () => {
   return (
     <>
       <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: window.innerWidth < 768 ? 0 : '250px',
-        right: 0,
-        background: '#f8f9fa',
-        zIndex: 10,
-        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
-        borderBottom: '2px solid #e9ecef',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Finished Goods</span>
-            </h1>
-            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>View your finished goods</p>}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={fetchCookedRecipes}
-              style={{
-                padding: '8px 16px',
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Refresh
-            </button>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #dfe6e9',
-                borderRadius: '6px',
-                fontSize: '13px',
-                outline: 'none',
-                cursor: 'pointer',
-                background: 'white'
-              }}
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="range">Date Range</option>
-            </select>
-            {filterType === 'range' && (
-              <>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    outline: 'none'
-                  }}
-                />
-                <span style={{ color: '#636e72', fontSize: '13px' }}>to</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    outline: 'none'
-                  }}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ 
-        marginTop: window.innerWidth < 768 ? '70px' : '90px',
+        marginTop: window.innerWidth < 768 ? '0px' : '0px',
         padding: window.innerWidth < 768 ? '15px' : '30px',
         background: '#f8f9fa',
-        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
+        <div style={{ marginBottom: '20px' }}>
+          <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Finished Goods
+          </h1>
+          {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>View your finished goods</p>}
+        </div>
         {loading ? <Loading /> : (
         <>
         <div className="overflow-x-auto bg-white rounded-lg shadow">

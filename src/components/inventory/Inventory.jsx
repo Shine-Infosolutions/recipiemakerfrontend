@@ -69,20 +69,15 @@ const Inventory = () => {
   return (
     <>
       <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: window.innerWidth < 768 ? 0 : '250px',
-        right: 0,
+        marginTop: window.innerWidth < 768 ? '0px' : '0px',
+        padding: window.innerWidth < 768 ? '15px' : '30px',
         background: '#f8f9fa',
-        zIndex: 10,
-        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
-        borderBottom: '2px solid #e9ecef',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div>
             <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MdKitchen style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Raw Materials</span>
+              <MdKitchen style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Raw Materials
             </h1>
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Manage your raw materials</p>}
           </div>
@@ -104,21 +99,12 @@ const Inventory = () => {
               fontWeight: '600',
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
+              whiteSpace: 'nowrap'
             }}
           >
             + Add Item
           </motion.button>
         </div>
-      </div>
-
-      <div style={{ 
-        marginTop: window.innerWidth < 768 ? '70px' : '90px',
-        padding: window.innerWidth < 768 ? '15px' : '30px',
-        background: '#f8f9fa',
-        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
-      }}>
         {loading ? <Loading /> : (
         <>
         {showForm && (
@@ -147,7 +133,8 @@ const Inventory = () => {
                   border: '1px solid #dfe6e9',
                   borderRadius: '6px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  color: 'black'
                 }}
               />
               <input
@@ -160,7 +147,8 @@ const Inventory = () => {
                   border: '1px solid #dfe6e9',
                   borderRadius: '6px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  color: 'black'
                 }}
               />
               <select
@@ -172,7 +160,8 @@ const Inventory = () => {
                   borderRadius: '6px',
                   fontSize: '14px',
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  color: 'black'
                 }}
               >
                 <option value="">Unit</option>
@@ -193,7 +182,8 @@ const Inventory = () => {
                   border: '1px solid #dfe6e9',
                   borderRadius: '6px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  color: 'black'
                 }}
               />
               <select
@@ -205,7 +195,8 @@ const Inventory = () => {
                   borderRadius: '6px',
                   fontSize: '14px',
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  color: 'black'
                 }}
               >
                 <option value="">Category</option>

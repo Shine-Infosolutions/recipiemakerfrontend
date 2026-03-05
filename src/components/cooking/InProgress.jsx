@@ -19,11 +19,26 @@ const InProgress = () => {
 
   const fetchCookingItems = async () => {
     setLoading(true);
-    const res = await fetch(`${API_URL}/cooked-items`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    const data = await res.json();
-    setCookingItems(data.filter(item => item.status === 'cooking'));
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const res = await fetch(`${API_URL}/cooked-items`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      console.log('All cooking items:', data);
+      const cookingItems = data.filter(item => item.status === 'cooking');
+      console.log('Cooking items:', cookingItems);
+      setCookingItems(cookingItems);
+    } catch (error) {
+      console.error('Error:', error);
+      setCookingItems([]);
+    }
     setLoading(false);
   };
 
@@ -35,7 +50,7 @@ const InProgress = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status: status === 'finished' ? 'finished' : 'semi-finished' })
       });
       
       if (!res.ok) {
@@ -97,30 +112,17 @@ const InProgress = () => {
   return (
     <>
       <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: window.innerWidth < 768 ? 0 : '250px',
-        right: 0,
+        marginTop: window.innerWidth < 768 ? '0px' : '0px',
+        padding: window.innerWidth < 768 ? '15px' : '30px',
         background: '#f8f9fa',
-        zIndex: 10,
-        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
-        borderBottom: '2px solid #e9ecef',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ marginBottom: '20px' }}>
           <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Cooking</span>
+            <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Cooking
           </h1>
           {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Items currently being cooked</p>}
         </div>
-      </div>
-
-      <div style={{ 
-        marginTop: window.innerWidth < 768 ? '70px' : '90px',
-        padding: window.innerWidth < 768 ? '15px' : '30px',
-        background: '#f8f9fa',
-        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
-      }}>
         {loading ? <Loading /> : (
         <>
         <div className="overflow-x-auto bg-white rounded-lg shadow">

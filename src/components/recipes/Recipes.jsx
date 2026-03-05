@@ -23,8 +23,8 @@ const Recipes = () => {
     fetchInventory();
   }, []);
 
-  // Show recipes from the recipes API
-  const allRecipes = recipes.filter(r => !r.status || r.status === 'cooking').map(r => ({
+  // Show all recipes as templates for cooking
+  const allRecipes = recipes.map(r => ({
     _id: r._id,
     title: r.title,
     ingredients: r.ingredients,
@@ -115,7 +115,8 @@ const Recipes = () => {
         return;
       }
       
-      // Create cooked item
+      // Create cooking item in separate collection
+      const sourceRecipe = recipes.find(r => r._id === id);
       const res = await fetch(`${API_URL}/cooked-items`, {
         method: 'POST',
         headers: { 
@@ -124,18 +125,32 @@ const Recipes = () => {
         },
         body: JSON.stringify({
           recipeId: id,
-          quantity: quantity
+          title: sourceRecipe.title,
+          ingredients: sourceRecipe.ingredients,
+          quantity: quantity,
+          status: 'cooking',
+          startedAt: new Date().toISOString()
         })
       });
       const data = await res.json();
+      console.log('Cook response:', data);
+      console.log('Response status:', res.status);
       if (!res.ok) {
+        console.error('Cook failed:', data);
         alert(data.error || 'Failed to cook recipe');
         return;
       }
       
+      // Check if status was actually updated
+      if (data.status !== 'cooking') {
+        console.warn('Status not updated to cooking:', data.status);
+      }
+      
       alert(`Recipe cooked successfully!`);
+      console.log('Refreshing recipes and inventory...');
       await fetchRecipes();
       await fetchInventory();
+      console.log('Refresh complete');
       setCookQuantities({ ...cookQuantities, [id]: 1 });
     } catch (error) {
       alert('Error cooking recipe: ' + error.message);
@@ -155,20 +170,15 @@ const Recipes = () => {
   return (
     <>
       <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: window.innerWidth < 768 ? 0 : '250px',
-        right: 0,
+        marginTop: window.innerWidth < 768 ? '0px' : '0px',
+        padding: window.innerWidth < 768 ? '15px' : '30px',
         background: '#f8f9fa',
-        zIndex: 10,
-        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
-        borderBottom: '2px solid #e9ecef',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div>
             <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MdRestaurant style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Recipes</span>
+              <MdRestaurant style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Recipes
             </h1>
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Create and manage your recipes</p>}
           </div>
@@ -189,21 +199,12 @@ const Recipes = () => {
               fontWeight: '600',
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
+              whiteSpace: 'nowrap'
             }}
           >
             + Add Recipe
           </motion.button>
         </div>
-      </div>
-
-      <div style={{ 
-        marginTop: window.innerWidth < 768 ? '70px' : '90px',
-        padding: window.innerWidth < 768 ? '15px' : '30px',
-        background: '#f8f9fa',
-        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
-      }}>
         {loading ? <Loading /> : (
         <>
         <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Recipe">
@@ -403,7 +404,9 @@ const Recipes = () => {
                     fontSize: '16px',
                     textAlign: 'center',
                     outline: 'none',
-                    fontWeight: '600'
+                    fontWeight: '600',
+                    color: 'black',
+                    background: 'white'
                   }}
                 />
               </div>

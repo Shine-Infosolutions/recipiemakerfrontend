@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 const Dashboard = () => {
   const [inventory, setInventory] = useState([]);
   const [recipes, setRecipes] = useState([]);
-  const [rawMaterials, setRawMaterials] = useState([]);
+  const [cookedItems, setCookedItems] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -22,27 +22,36 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [invRes, recRes, rmRes] = await Promise.all([
+    const [invRes, recRes, cookedRes] = await Promise.all([
       fetch(`${API_URL}/inventory`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
       fetch(`${API_URL}/recipes`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-      fetch(`${API_URL}/rawmaterials`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      fetch(`${API_URL}/cooked-items`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
     ]);
     setInventory(await invRes.json());
     setRecipes(await recRes.json());
-    setRawMaterials(await rmRes.json());
+    setCookedItems(await cookedRes.json());
     setLoading(false);
   };
 
   const filterRecipesByDate = () => {
+    if (filterType === 'all') {
+      return recipes;
+    }
+    
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     
     return recipes.filter(recipe => {
-      if (!recipe.createdAt) return false;
-      const recipeDate = new Date(recipe.createdAt);
+      const recipeDate = recipe.createdAt ? new Date(recipe.createdAt) : new Date();
       
       if (filterType === 'today') {
         return recipeDate >= today;
+      } else if (filterType === 'weekly') {
+        return recipeDate >= weekAgo;
+      } else if (filterType === 'monthly') {
+        return recipeDate >= monthAgo;
       } else if (filterType === 'range' && startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -55,59 +64,49 @@ const Dashboard = () => {
 
   const filteredRecipes = filterRecipesByDate();
   const filteredInventory = categoryFilter === 'all' ? inventory : inventory.filter(item => item.category === categoryFilter);
+  const rawMaterials = cookedItems.filter(item => item.status === 'cooking');
 
-  // Calculate ingredients used and restocked
-  const usedIngredients = [];
-  const restockedIngredients = [];
+  // Calculate ingredients used and restocked from cooked items
+  const usedIngredients = cookedItems
+    .filter(item => item.status === 'finished' || item.status === 'cooking')
+    .flatMap(item => item.ingredients || [])
+    .reduce((acc, ing) => {
+      const existing = acc.find(a => a.name === ing.name);
+      if (existing) {
+        existing.quantity += ing.quantity;
+      } else {
+        acc.push({ ...ing });
+      }
+      return acc;
+    }, []);
 
-  filteredRecipes
-    .filter(r => r.status === 'cooking' || r.status === 'cooked')
-    .forEach(recipe => {
-      recipe.ingredients?.forEach(ing => {
-        const existing = usedIngredients.find(i => i.name === ing.inventoryId?.name);
-        if (existing) {
-          existing.quantity += ing.quantity;
-        } else {
-          usedIngredients.push({
-            name: ing.inventoryId?.name || 'Unknown',
-            quantity: ing.quantity,
-            unit: ing.unit
-          });
-        }
-      });
-    });
+  const restockedIngredients = cookedItems
+    .filter(item => item.status === 'semi-finished')
+    .flatMap(item => item.ingredients || [])
+    .reduce((acc, ing) => {
+      const existing = acc.find(a => a.name === ing.name);
+      if (existing) {
+        existing.quantity += ing.quantity;
+      } else {
+        acc.push({ ...ing });
+      }
+      return acc;
+    }, []);
 
-  filteredRecipes
-    .filter(r => r.status === 'cancelled')
-    .forEach(recipe => {
-      recipe.ingredients?.forEach(ing => {
-        const existing = restockedIngredients.find(i => i.name === ing.inventoryId?.name);
-        if (existing) {
-          existing.quantity += ing.quantity;
-        } else {
-          restockedIngredients.push({
-            name: ing.inventoryId?.name || 'Unknown',
-            quantity: ing.quantity,
-            unit: ing.unit
-          });
-        }
-      });
-    });
+  const ingredientsUsed = usedIngredients.reduce((sum, ing) => sum + ing.quantity, 0);
+  const ingredientsRestocked = restockedIngredients.reduce((sum, ing) => sum + ing.quantity, 0);
 
-  const ingredientsUsed = usedIngredients.reduce((sum, ing) => sum + 1, 0);
-  const ingredientsRestocked = restockedIngredients.reduce((sum, ing) => sum + 1, 0);
-
-  // Statistics
+  // Statistics - remove status-based filtering since recipes are just templates
   const totalInventoryValue = inventory.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0);
   const lowStockItems = inventory.filter(item => item.quantity < 10).length;
-  const cookingRecipes = filteredRecipes.filter(r => r.status === 'cooking').length;
-  const cookedRecipes = filteredRecipes.filter(r => r.status === 'cooked').length;
-  const cancelledRecipes = filteredRecipes.filter(r => r.status === 'cancelled').length;
   const categories = [...new Set(inventory.map(item => item.category))];
 
-  const StatCard = ({ icon, title, value, color, subtitle }) => (
+  const StatCard = ({ icon, title, value, color, subtitle, index = 0 }) => (
     <motion.div
-      whileHover={{ y: -4, boxShadow: '0 8px 20px rgba(0,0,0,0.12)' }}
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      whileHover={{ y: -4, boxShadow: '0 8px 20px rgba(0,0,0,0.12)', scale: 1.02 }}
       style={{
         background: 'white',
         padding: '20px',
@@ -142,125 +141,154 @@ const Dashboard = () => {
   return (
     <>
       <div style={{ 
-        position: 'fixed',
-        top: 0,
-        left: window.innerWidth < 768 ? 0 : '250px',
-        right: 0,
-        background: '#f8f9fa',
-        zIndex: 10,
-        padding: window.innerWidth < 768 ? '12px 15px' : '16px 30px',
-        borderBottom: '2px solid #e9ecef',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <MdDashboard style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Dashboard</span>
-            </h1>
-            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Overview of your recipe management system</p>}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ 
-        marginTop: window.innerWidth < 768 ? '70px' : '90px',
+        marginTop: window.innerWidth < 768 ? '0px' : '0px',
         padding: window.innerWidth < 768 ? '15px' : '30px',
         background: '#f8f9fa',
-        minHeight: window.innerWidth < 768 ? 'calc(100vh - 130px)' : 'calc(100vh - 90px)'
+        minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          style={{ marginBottom: '20px' }}
+        >
+          <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MdDashboard style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Dashboard
+          </h1>
+          {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Overview of your recipe management system</p>}
+          
+          {/* Filter Buttons */}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => setFilterType('all')}
+              style={{
+                padding: '8px 16px',
+                background: filterType === 'all' ? '#667eea' : 'white',
+                color: filterType === 'all' ? 'white' : '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterType('today')}
+              style={{
+                padding: '8px 16px',
+                background: filterType === 'today' ? '#667eea' : 'white',
+                color: filterType === 'today' ? 'white' : '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setFilterType('weekly')}
+              style={{
+                padding: '8px 16px',
+                background: filterType === 'weekly' ? '#667eea' : 'white',
+                color: filterType === 'weekly' ? 'white' : '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setFilterType('monthly')}
+              style={{
+                padding: '8px 16px',
+                background: filterType === 'monthly' ? '#667eea' : 'white',
+                color: filterType === 'monthly' ? 'white' : '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setFilterType('range')}
+              style={{
+                padding: '8px 16px',
+                background: filterType === 'range' ? '#667eea' : 'white',
+                color: filterType === 'range' ? 'white' : '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+            >
+              Date Range
+            </button>
+            {filterType === 'range' && (
+              <>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    border: '2px solid #667eea',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    color: 'black'
+                  }}
+                />
+                <span style={{ color: '#636e72', fontSize: '13px' }}>to</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    border: '2px solid #667eea',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    color: 'black'
+                  }}
+                />
+              </>
+            )}
+          </div>
+        </motion.div>
         {loading ? <Loading /> : (
         <>
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth $${totalInventoryValue.toFixed(2)}`} />
-          <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ff4757" subtitle="Items below 10 units" />
-          <StatCard icon={<MdRestaurantMenu />} title="Raw Materials" value={rawMaterials.length} color="#ffa502" subtitle="Recipe templates" />
-          <StatCard icon={<GiCookingPot />} title="Finished Goods" value={cookingRecipes} color="#ffa502" subtitle="In progress" />
-          <StatCard icon={<MdRestaurant />} title="Cooked" value={cookedRecipes} color="#00b894" subtitle="Completed recipes" />
-          <StatCard icon={<MdTrendingUp />} title="Cancelled" value={cancelledRecipes} color="#ff4757" subtitle="Semi-finished" />
-          <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From inventory" />
-          <StatCard icon={<MdTrendingUp />} title="Ingredients Restocked" value={ingredientsRestocked} color="#00b894" subtitle="From cancelled" />
-        </div>
-
-        {/* Filters */}
-        <div style={{ background: 'white', padding: '16px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginBottom: '24px' }}>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Filters</h3>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div>
-              <label style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Recipe Date</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  background: 'white'
-                }}
-              >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="range">Date Range</option>
-              </select>
-            </div>
-            {filterType === 'range' && (
-              <>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', display: 'block', marginBottom: '4px' }}>From</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #dfe6e9',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', display: 'block', marginBottom: '4px' }}>To</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #dfe6e9',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </>
-            )}
-            <div>
-              <label style={{ fontSize: '12px', color: '#636e72', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Inventory Category</label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  background: 'white'
-                }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}
+        >
+          <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth $${totalInventoryValue.toFixed(2)}`} index={0} />
+          <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ff4757" subtitle="Items below 10 units" index={1} />
+          <StatCard icon={<MdRestaurantMenu />} title="Total Recipes" value={recipes.length} color="#667eea" subtitle="Available templates" index={2} />
+          <StatCard icon={<MdRestaurant />} title="Finished Goods" value={cookedItems.filter(item => item.status === 'finished').length} color="#00b894" subtitle="Completed items" index={3} />
+          <StatCard icon={<GiCookingPot />} title="Semi-Finished" value={cookedItems.filter(item => item.status === 'semi-finished').length} color="#ffa502" subtitle="Partial items" index={4} />
+          <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From cooking" index={5} />
+          <StatCard icon={<MdTrendingUp />} title="Ingredients Restocked" value={ingredientsRestocked} color="#00b894" subtitle="From cancelled" index={6} />
+        </motion.div>
 
         {/* Two Column Layout */}
         <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
@@ -329,82 +357,6 @@ const Dashboard = () => {
               ))}
               {filteredInventory.length === 0 && (
                 <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No items found</p>
-              )}
-            </div>
-          </div>
-
-          {/* Raw Materials Section */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MdRestaurantMenu style={{ color: '#ffa502' }} /> Raw Materials ({rawMaterials.length})
-            </h3>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {rawMaterials.slice(0, 10).map(rm => (
-                <div key={rm._id} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>
-                    {rm.recipeName} {rm.variation && `(${rm.variation})`}
-                  </p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#636e72' }}>
-                    {rm.ingredients?.length || 0} ingredients
-                  </p>
-                </div>
-              ))}
-              {rawMaterials.length === 0 && (
-                <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No raw materials found</p>
-              )}
-            </div>
-          </div>
-
-          {/* Finished Goods Section */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <GiCookingPot style={{ color: '#ffa502' }} /> Finished Goods ({cookingRecipes})
-            </h3>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {filteredRecipes.filter(r => r.status === 'cooking').slice(0, 10).map(recipe => (
-                <div key={recipe._id} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>{recipe.title}</p>
-                    {recipe.quantity > 1 && (
-                      <span style={{ fontSize: '10px', color: '#667eea', background: '#f0f3ff', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
-                        x{recipe.quantity}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#636e72' }}>
-                    {recipe.createdAt && new Date(recipe.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-              {cookingRecipes === 0 && (
-                <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No finished goods</p>
-              )}
-            </div>
-          </div>
-
-          {/* Cooked Recipes Section */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MdRestaurant style={{ color: '#00b894' }} /> Cooked ({cookedRecipes})
-            </h3>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {filteredRecipes.filter(r => r.status === 'cooked').slice(0, 10).map(recipe => (
-                <div key={recipe._id} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>{recipe.title}</p>
-                    {recipe.quantity > 1 && (
-                      <span style={{ fontSize: '10px', color: '#667eea', background: '#f0f3ff', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
-                        x{recipe.quantity}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#636e72' }}>
-                    {recipe.createdAt && new Date(recipe.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-              {cookedRecipes === 0 && (
-                <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No cooked recipes</p>
               )}
             </div>
           </div>

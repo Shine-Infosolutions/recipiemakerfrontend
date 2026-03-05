@@ -16,6 +16,7 @@ const Login = ({ onSuccess }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       localStorage.setItem('token', data.token);
+      localStorage.setItem('userRole', data.user.role || 'User');
       onSuccess();
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -85,6 +86,7 @@ const Login = ({ onSuccess }) => {
                   fontSize: '14px', 
                   outline: 'none',
                   background: 'rgba(255,255,255,0.9)',
+                  color: 'black',
                   boxSizing: 'border-box'
                 }}
                 required
@@ -111,6 +113,7 @@ const Login = ({ onSuccess }) => {
                   fontSize: '14px', 
                   outline: 'none',
                   background: 'rgba(255,255,255,0.9)',
+                  color: 'black',
                   boxSizing: 'border-box'
                 }}
                 required
