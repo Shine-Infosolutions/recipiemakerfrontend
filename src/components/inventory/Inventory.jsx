@@ -108,143 +108,105 @@ const Inventory = () => {
         {loading ? <Loading /> : (
         <>
         {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 100 }}
-            style={{
-              background: 'white',
-              padding: '24px',
-              borderRadius: '12px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-              marginBottom: '24px',
-              border: '1px solid #e9ecef'
-            }}
-          >
-            <h3 style={{ marginTop: 0, color: '#2d3436', fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>{editingId ? <><MdEdit style={{ verticalAlign: 'middle' }} /> Edit Item</> : <>Add New Item</>}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <input
-                type="text"
-                placeholder="Item name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                style={{
-                  padding: '10px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  color: 'black'
-                }}
-              />
-              <input
-                type="number"
-                placeholder="Quantity"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                style={{
-                  padding: '10px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  color: 'black'
-                }}
-              />
-              <select
-                value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                style={{
-                  padding: '10px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  color: 'black'
-                }}
-              >
-                <option value="">Unit</option>
-                <option value="PCS">PCS</option>
-                <option value="KG">KG</option>
-                <option value="Gram">Gram</option>
-                <option value="Liter">Liter</option>
-                <option value="Pack">Pack</option>
-                <option value="Dozen">Dozen</option>
-              </select>
-              <input
-                type="number"
-                placeholder="Price"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                style={{
-                  padding: '10px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  color: 'black'
-                }}
-              />
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                style={{
-                  padding: '10px',
-                  border: '1px solid #dfe6e9',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  color: 'black'
-                }}
-              >
-                <option value="">Category</option>
-                <option value="Dairy">Dairy</option>
-                <option value="Vegetables">Vegetables</option>
-                <option value="Fruits">Fruits</option>
-                <option value="Meat">Meat</option>
-                <option value="Grains">Grains</option>
-                <option value="Spices">Spices</option>
-              </select>
+          <div className="modal modal-open">
+            <div className="modal-box max-w-2xl">
+              <h3 className="font-bold text-lg mb-4">
+                {editingId ? <><MdEdit className="inline mr-2" /> Edit Item</> : <>Add New Item</>}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Item Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter item name"
+                    className="input input-bordered"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Category</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  >
+                    <option value="">Select category</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Vegetables">Vegetables</option>
+                    <option value="Fruits">Fruits</option>
+                    <option value="Meat">Meat</option>
+                    <option value="Grains">Grains</option>
+                    <option value="Spices">Spices</option>
+                  </select>
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Quantity</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Enter quantity"
+                    className="input input-bordered"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Unit</span>
+                  </label>
+                  <select
+                    className="select select-bordered"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  >
+                    <option value="">Select unit</option>
+                    <option value="PCS">PCS</option>
+                    <option value="KG">KG</option>
+                    <option value="Gram">Gram</option>
+                    <option value="Liter">Liter</option>
+                    <option value="Pack">Pack</option>
+                    <option value="Dozen">Dozen</option>
+                  </select>
+                </div>
+                <div className="form-control md:col-span-2">
+                  <label className="label">
+                    <span className="label-text">Price (₹)</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Enter price"
+                    className="input input-bordered"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="modal-action">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingId(null);
+                    setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={addItem}
+                >
+                  {editingId ? 'Update' : 'Add'} Item
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={addItem}
-                style={{
-                  padding: '10px 20px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}
-              >
-                {editingId ? 'Update' : 'Add'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingId(null);
-                  setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
-                }}
-                style={{
-                  padding: '10px 20px',
-                  background: '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </motion.div>
+          </div>
         )}
 
         <div className="overflow-x-auto bg-white rounded-lg shadow">

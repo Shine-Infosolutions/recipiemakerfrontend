@@ -39,36 +39,6 @@ const Users = () => {
       background: '#f8f9fa',
       minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
     }}>
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ 
-          fontSize: window.innerWidth < 768 ? '18px' : '24px', 
-          fontWeight: '700', 
-          color: '#2d3436', 
-          margin: 0, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '6px' 
-        }}>
-          <MdPeople style={{ 
-            fontSize: window.innerWidth < 768 ? '20px' : '28px', 
-            color: '#667eea', 
-            flexShrink: 0 
-          }} /> 
-          User Management
-        </h1>
-        {window.innerWidth >= 768 && (
-          <p style={{ 
-            color: '#636e72', 
-            marginTop: '4px', 
-            fontSize: '13px', 
-            fontWeight: '500', 
-            margin: '4px 0 0 0' 
-          }}>
-            Manage system users and their roles
-          </p>
-        )}
-      </div>
-
       <UserList onEdit={handleEdit} onAdd={handleAdd} key={refreshTrigger} />
       
       {/* Add User Modal */}

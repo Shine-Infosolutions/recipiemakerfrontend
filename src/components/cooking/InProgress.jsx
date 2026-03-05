@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
-import Modal from '../common/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -12,6 +11,7 @@ const InProgress = () => {
   const [showRestockModal, setShowRestockModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
+  const [ingredientQuantities, setIngredientQuantities] = useState({});
 
   useEffect(() => {
     fetchCookingItems();
@@ -72,6 +72,15 @@ const InProgress = () => {
       typeof ing.inventoryId === 'string' ? ing.inventoryId : ing.inventoryId._id || ing.inventoryId.toString()
     );
     setSelectedIngredients(ingredientIds);
+    
+    // Initialize quantities with original amounts
+    const quantities = {};
+    item.ingredients.forEach(ing => {
+      const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
+      quantities[ingId] = ing.quantity;
+    });
+    setIngredientQuantities(quantities);
+    
     setShowRestockModal(true);
   };
 
@@ -90,7 +99,8 @@ const InProgress = () => {
         },
         body: JSON.stringify({ 
           status: 'semi-finished',
-          restockedIngredients: selectedIngredients
+          restockedIngredients: selectedIngredients,
+          ingredientQuantities: ingredientQuantities
         })
       });
       
@@ -103,6 +113,7 @@ const InProgress = () => {
       setShowRestockModal(false);
       setSelectedItem(null);
       setSelectedIngredients([]);
+      setIngredientQuantities({});
       fetchCookingItems();
     } catch (error) {
       alert(`Error: ${error.message}`);
@@ -187,73 +198,83 @@ const InProgress = () => {
         )}
       </div>
 
-      <Modal isOpen={showRestockModal} onClose={() => setShowRestockModal(false)} title="Select Ingredients to Restock">
-        {selectedItem && (
-          <div>
-            <p style={{ fontSize: '14px', color: '#636e72', marginBottom: '16px' }}>Select which ingredients to restock to inventory:</p>
-            <div style={{ marginBottom: '20px' }}>
+      {showRestockModal && selectedItem && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-2xl">
+            <h3 className="font-bold text-lg mb-4">
+              Select Ingredients to Restock
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Select which ingredients to restock to inventory and adjust quantities:
+            </p>
+            <div className="space-y-3 mb-6 max-h-80 overflow-y-auto">
               {selectedItem.ingredients?.map((ing, idx) => {
                 const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
                 return (
-                <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIngredients.includes(ingId)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedIngredients([...selectedIngredients, ingId]);
-                      } else {
-                        setSelectedIngredients(selectedIngredients.filter(id => id !== ingId));
-                      }
-                    }}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', flex: 1 }}>
-                    {ing.name || 'Unknown'}
-                  </span>
-                  <span style={{ fontSize: '13px', color: '#636e72', fontWeight: '600' }}>
-                    {ing.quantity} {ing.unit}
-                  </span>
-                </label>
+                  <div key={idx} className="card bg-base-200 p-4">
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selectedIngredients.includes(ingId)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIngredients([...selectedIngredients, ingId]);
+                          } else {
+                            setSelectedIngredients(selectedIngredients.filter(id => id !== ingId));
+                          }
+                        }}
+                      />
+                      <div className="flex-1">
+                        <span className="font-semibold text-base">
+                          {ing.name || 'Unknown'}
+                        </span>
+                      </div>
+                      <div className="form-control">
+                        <label className="label">
+                          <span className="label-text text-xs">Quantity</span>
+                        </label>
+                        <input
+                          type="number"
+                          className="input input-bordered input-sm w-20"
+                          value={ingredientQuantities[ingId] || ing.quantity}
+                          onChange={(e) => {
+                            setIngredientQuantities({
+                              ...ingredientQuantities,
+                              [ingId]: parseFloat(e.target.value) || 0
+                            });
+                          }}
+                          min="0"
+                          step="0.1"
+                        />
+                      </div>
+                      <span className="text-sm text-gray-600 font-medium min-w-[3rem]">
+                        {ing.unit}
+                      </span>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="modal-action">
               <button
-                onClick={confirmSemiFinished}
-                style={{
-                  flex: 1,
-                  padding: '12px 20px',
-                  background: 'linear-gradient(135deg, #ffa502 0%, #ff8c00 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}
-              >
-                Confirm Restock
-              </button>
-              <button
+                type="button"
+                className="btn btn-ghost"
                 onClick={() => setShowRestockModal(false)}
-                style={{
-                  padding: '12px 20px',
-                  background: '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}
               >
                 Cancel
               </button>
+              <button
+                type="button"
+                className="btn btn-warning"
+                onClick={confirmSemiFinished}
+              >
+                Confirm Restock
+              </button>
             </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
     </>
   );
 };

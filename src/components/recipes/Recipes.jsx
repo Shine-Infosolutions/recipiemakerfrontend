@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdRestaurant, MdPerson, MdTimer, MdRestaurantMenu, MdClose, MdAdd, MdDelete } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
-import Modal from '../common/Modal';
 import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
@@ -207,252 +206,155 @@ const Recipes = () => {
         </div>
         {loading ? <Loading /> : (
         <>
-        <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Recipe">
-          <div>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#2d3436', marginBottom: '8px' }}>Recipe Name</label>
-              <input
-                type="text"
-                placeholder="Enter recipe name"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #e9ecef',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  transition: 'border-color 0.3s',
-                  color: '#2d3436',
-                  background: 'white'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                onBlur={(e) => e.target.style.borderColor = '#e9ecef'}
-              />
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>Ingredients</label>
-                <button
-                  onClick={addIngredient}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    boxShadow: '0 2px 8px rgba(102,126,234,0.3)'
-                  }}
-                >
-                  <MdAdd style={{ fontSize: '16px' }} /> Add Ingredient
-                </button>
-              </div>
-              
-              <div style={{ maxHeight: '300px', overflowY: 'auto', padding: '4px' }}>
-                {formData.ingredients.map((ingredient, index) => (
-                  <div key={index} style={{ 
-                    background: '#f8f9fa', 
-                    padding: '12px', 
-                    borderRadius: '8px', 
-                    marginBottom: '10px',
-                    border: '1px solid #e9ecef'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: '600', color: '#667eea' }}>Ingredient {index + 1}</span>
-                      {formData.ingredients.length > 1 && (
-                        <button
-                          onClick={() => removeIngredient(index)}
-                          style={{
-                            padding: '4px 8px',
-                            background: '#ff4757',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '2px'
-                          }}
-                        >
-                          <MdClose style={{ fontSize: '14px' }} /> Remove
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#636e72', marginBottom: '4px' }}>Select Item</label>
-                        <select
-                          value={ingredient.inventoryId}
-                          onChange={(e) => updateIngredient(index, 'inventoryId', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #dfe6e9',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            outline: 'none',
-                            cursor: 'pointer',
-                            background: 'white',
-                            color: '#2d3436'
-                          }}
-                        >
-                          <option value="">Choose ingredient...</option>
-                          {inventory.map(inv => (
-                            <option key={inv._id} value={inv._id}>{inv.name} ({inv.quantity} {inv.unit})</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#636e72', marginBottom: '4px' }}>Quantity</label>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          value={ingredient.quantity}
-                          onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #dfe6e9',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            outline: 'none',
-                            background: 'white',
-                            color: '#2d3436'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e9ecef' }}>
-              <button
-                onClick={createRecipe}
-                disabled={!formData.title || formData.ingredients.length === 0 || !formData.ingredients.every(ing => ing.inventoryId && ing.quantity)}
-                style={{
-                  flex: 1,
-                  padding: '12px 20px',
-                  background: formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity) 
-                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-                    : '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity) ? 'pointer' : 'not-allowed',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-                  opacity: formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity) ? 1 : 0.6
-                }}
-              >
-                Save Recipe
-              </button>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
-                }}
-                style={{
-                  padding: '12px 20px',
-                  background: '#e9ecef',
-                  color: '#2d3436',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </Modal>
-
-        <Modal isOpen={showCookModal} onClose={() => setShowCookModal(false)} title="Cook Recipe">
-          {selectedRecipe && (
-            <div>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436' }}>
-                {selectedRecipe.title}
+        {showForm && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-4xl">
+              <h3 className="font-bold text-lg mb-4">
+                <MdRestaurant className="inline mr-2" /> Add Recipe
               </h3>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#2d3436', marginBottom: '8px' }}>
-                  Quantity to Cook:
+              <div className="form-control mb-6">
+                <label className="label">
+                  <span className="label-text">Recipe Name</span>
                 </label>
                 <input
-                  type="number"
-                  min="1"
-                  value={cookQuantities[selectedRecipe._id] || 1}
-                  onChange={(e) => setCookQuantities({ ...cookQuantities, [selectedRecipe._id]: parseInt(e.target.value) || 1 })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #dfe6e9',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    textAlign: 'center',
-                    outline: 'none',
-                    fontWeight: '600',
-                    color: 'black',
-                    background: 'white'
-                  }}
+                  type="text"
+                  placeholder="Enter recipe name"
+                  className="input input-bordered"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="label">
+                    <span className="label-text font-semibold">Ingredients</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={addIngredient}
+                  >
+                    <MdAdd className="text-base" /> Add Ingredient
+                  </button>
+                </div>
+                
+                <div className="max-h-80 overflow-y-auto space-y-4">
+                  {formData.ingredients.map((ingredient, index) => (
+                    <div key={index} className="card bg-base-200 p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="badge badge-primary">Ingredient {index + 1}</span>
+                        {formData.ingredients.length > 1 && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-error"
+                            onClick={() => removeIngredient(index)}
+                          >
+                            <MdClose className="text-base" /> Remove
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text">Select Item</span>
+                          </label>
+                          <select
+                            className="select select-bordered"
+                            value={ingredient.inventoryId}
+                            onChange={(e) => updateIngredient(index, 'inventoryId', e.target.value)}
+                          >
+                            <option value="">Choose ingredient...</option>
+                            {inventory.map(inv => (
+                              <option key={inv._id} value={inv._id}>{inv.name} ({inv.quantity} {inv.unit})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text">Quantity</span>
+                          </label>
+                          <input
+                            type="number"
+                            placeholder="Enter quantity"
+                            className="input input-bordered"
+                            value={ingredient.quantity}
+                            onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="modal-action">
                 <button
+                  type="button"
+                  className="btn btn-ghost"
                   onClick={() => {
-                    setShowCookModal(false);
-                    cookRecipe(selectedRecipe._id, selectedRecipe.isFromRawMaterial);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '12px 20px',
-                    background: 'linear-gradient(135deg, #00b894 0%, #00a383 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  <GiCookingPot style={{ fontSize: '18px' }} /> Cook Now
-                </button>
-                <button
-                  onClick={() => setShowCookModal(false)}
-                  style={{
-                    padding: '12px 20px',
-                    background: '#95a5a6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '14px'
+                    setShowForm(false);
+                    setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
                   }}
                 >
                   Cancel
                 </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={createRecipe}
+                  disabled={!formData.title || formData.ingredients.length === 0 || !formData.ingredients.every(ing => ing.inventoryId && ing.quantity)}
+                >
+                  Save Recipe
+                </button>
               </div>
             </div>
-          )}
-        </Modal>
+          </div>
+        )}
+
+        {showCookModal && selectedRecipe && (
+          <div className="modal modal-open">
+            <div className="modal-box">
+              <h3 className="font-bold text-lg mb-4">
+                <GiCookingPot className="inline mr-2" /> Cook Recipe
+              </h3>
+              <div className="mb-4">
+                <h4 className="text-base font-semibold mb-2">{selectedRecipe.title}</h4>
+              </div>
+              <div className="form-control mb-6">
+                <label className="label">
+                  <span className="label-text">Quantity to Cook</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  className="input input-bordered text-center"
+                  value={cookQuantities[selectedRecipe._id] || 1}
+                  onChange={(e) => setCookQuantities({ ...cookQuantities, [selectedRecipe._id]: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setShowCookModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={() => {
+                    setShowCookModal(false);
+                    cookRecipe(selectedRecipe._id, selectedRecipe.isFromRawMaterial);
+                  }}
+                >
+                  <GiCookingPot className="text-base mr-1" /> Cook Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
