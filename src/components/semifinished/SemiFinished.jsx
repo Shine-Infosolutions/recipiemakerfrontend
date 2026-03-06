@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 const SemiFinished = () => {
   const [cancelledRecipes, setCancelledRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
 
   useEffect(() => {
     fetchCancelledRecipes();
@@ -104,9 +105,11 @@ const SemiFinished = () => {
                     {recipe.createdAt && new Date(recipe.createdAt).toLocaleString()}
                   </td>
                   <td style={{ padding: '16px' }}>
-                    <button onClick={() => deleteRecipe(recipe._id)} style={{ padding: '8px 12px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <MdDelete style={{ fontSize: '16px' }} /> Delete
-                    </button>
+                    {userRole === 'Admin' && (
+                      <button onClick={() => deleteRecipe(recipe._id)} style={{ padding: '8px 12px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MdDelete style={{ fontSize: '16px' }} /> Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

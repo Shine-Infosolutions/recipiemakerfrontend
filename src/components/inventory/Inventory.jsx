@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { MdKitchen, MdEdit, MdDelete, MdRestaurantMenu } from 'react-icons/md';
 import Loading from '../common/Loading';
 
@@ -9,7 +10,7 @@ const Inventory = () => {
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', quantity: '', unit: '', category: '', price: '' });
+  const [formData, setFormData] = useState({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,28 +40,35 @@ const Inventory = () => {
         },
         body: JSON.stringify(formData)
       });
-      setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
+      setFormData({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '' });
       setEditingId(null);
       setShowForm(false);
       fetchItems();
+      toast.success(editingId ? 'Item updated successfully!' : 'Item added successfully!');
     }
   };
 
   const deleteItem = async (id) => {
-    await fetch(`${API_URL}/inventory/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    fetchItems();
+    if (confirm('Are you sure you want to delete this item?')) {
+      await fetch(`${API_URL}/inventory/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchItems();
+      toast.success('Item deleted successfully!');
+    }
   };
 
   const editItem = (item) => {
     setFormData({
       name: item.name,
+      productCode: item.productCode || '',
       quantity: item.quantity,
       unit: item.unit,
       category: item.category || '',
-      price: item.price || ''
+      price: item.price || '',
+      minStock: item.minStock || '',
+      supplier: item.supplier || ''
     });
     setEditingId(item._id);
     setShowForm(true);
@@ -87,7 +95,7 @@ const Inventory = () => {
             onClick={() => {
               setShowForm(!showForm);
               setEditingId(null);
-              setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
+              setFormData({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '' });
             }}
             style={{
               padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
@@ -116,6 +124,18 @@ const Inventory = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="form-control">
                   <label className="label">
+                    <span className="label-text">Product Code</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter product code"
+                    className="input input-bordered"
+                    value={formData.productCode}
+                    onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
                     <span className="label-text">Item Name</span>
                   </label>
                   <input
@@ -130,19 +150,13 @@ const Inventory = () => {
                   <label className="label">
                     <span className="label-text">Category</span>
                   </label>
-                  <select
-                    className="select select-bordered"
+                  <input
+                    type="text"
+                    placeholder="Enter category"
+                    className="input input-bordered"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  >
-                    <option value="">Select category</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Fruits">Fruits</option>
-                    <option value="Meat">Meat</option>
-                    <option value="Grains">Grains</option>
-                    <option value="Spices">Spices</option>
-                  </select>
+                  />
                 </div>
                 <div className="form-control">
                   <label className="label">
@@ -160,21 +174,15 @@ const Inventory = () => {
                   <label className="label">
                     <span className="label-text">Unit</span>
                   </label>
-                  <select
-                    className="select select-bordered"
+                  <input
+                    type="text"
+                    placeholder="Enter unit (kg, pcs, etc.)"
+                    className="input input-bordered"
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  >
-                    <option value="">Select unit</option>
-                    <option value="PCS">PCS</option>
-                    <option value="KG">KG</option>
-                    <option value="Gram">Gram</option>
-                    <option value="Liter">Liter</option>
-                    <option value="Pack">Pack</option>
-                    <option value="Dozen">Dozen</option>
-                  </select>
+                  />
                 </div>
-                <div className="form-control md:col-span-2">
+                <div className="form-control">
                   <label className="label">
                     <span className="label-text">Price (₹)</span>
                   </label>
@@ -186,6 +194,30 @@ const Inventory = () => {
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   />
                 </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Min Stock</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Enter minimum stock"
+                    className="input input-bordered"
+                    value={formData.minStock}
+                    onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Supplier</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter supplier name"
+                    className="input input-bordered"
+                    value={formData.supplier}
+                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="modal-action">
                 <button
@@ -193,7 +225,7 @@ const Inventory = () => {
                   onClick={() => {
                     setShowForm(false);
                     setEditingId(null);
-                    setFormData({ name: '', quantity: '', unit: '', category: '', price: '' });
+                    setFormData({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '' });
                   }}
                 >
                   Cancel
@@ -213,17 +245,21 @@ const Inventory = () => {
           <table className="table w-full">
             <thead style={{ backgroundColor: '#f1f3f5' }}>
               <tr>
+                <th style={{ color: '#2d3436' }}>Product Code</th>
                 <th style={{ color: '#2d3436' }}>Name</th>
                 <th style={{ color: '#2d3436' }}>Category</th>
                 <th style={{ color: '#2d3436' }}>Quantity</th>
                 <th style={{ color: '#2d3436' }}>Unit</th>
                 <th style={{ color: '#2d3436' }}>Price</th>
+                <th style={{ color: '#2d3436' }}>Min Stock</th>
+                <th style={{ color: '#2d3436' }}>Supplier</th>
                 <th style={{ color: '#2d3436', textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <td style={{ color: '#2d3436' }}>{item.productCode || '-'}</td>
                   <td className="font-semibold" style={{ color: '#2d3436' }}>{item.name}</td>
                   <td>
                     {item.category && (
@@ -233,6 +269,8 @@ const Inventory = () => {
                   <td className="font-bold" style={{ color: '#2d3436' }}>{item.quantity}</td>
                   <td style={{ color: '#2d3436' }}>{item.unit}</td>
                   <td style={{ color: '#2d3436' }}>{item.price > 0 ? `₹${item.price}` : '-'}</td>
+                  <td style={{ color: '#2d3436' }}>{item.minStock || '-'}</td>
+                  <td style={{ color: '#2d3436' }}>{item.supplier || '-'}</td>
                   <td>
                     <div className="flex gap-2 justify-center">
                       <button onClick={() => editItem(item)} className="btn btn-sm btn-primary">
@@ -244,7 +282,7 @@ const Inventory = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))}}
             </tbody>
           </table>
         </div>

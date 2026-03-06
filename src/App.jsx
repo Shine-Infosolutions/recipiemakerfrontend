@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import Register from './components/Register';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
@@ -15,6 +16,7 @@ import RecipeReport from './components/reports/RecipeReport';
 import ProductionReport from './components/reports/ProductionReport';
 import RevenueReport from './components/reports/RevenueReport';
 import StockLogsReport from './components/reports/StockLogsReport';
+import BulkDataManager from './components/BulkDataManager';
 import { apiRequest, API_URL } from './utils/api';
 
 const App = () => {
@@ -108,6 +110,7 @@ const App = () => {
           {activeTab === 'production-report' && userRole === 'Admin' && <ProductionReport />}
           {activeTab === 'revenue-report' && userRole === 'Admin' && <RevenueReport />}
           {activeTab === 'stock-logs-report' && userRole === 'Admin' && <StockLogsReport />}
+          {activeTab === 'bulk-data' && userRole === 'Admin' && <BulkDataManager />}
           {activeTab === 'settings' && <ChangePassword />}
         </div>
       </div>
@@ -118,6 +121,26 @@ const App = () => {
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
         userRole={userRole}
+      />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            style: {
+              background: '#00b894',
+            },
+          },
+          error: {
+            style: {
+              background: '#e74c3c',
+            },
+          },
+        }}
       />
     </div>
   );

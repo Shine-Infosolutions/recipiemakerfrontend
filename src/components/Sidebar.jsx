@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney, MdHistory } from 'react-icons/md';
+import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney, MdHistory, MdCloudUpload } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
 import { FaFire, FaChevronDown, FaChevronRight } from 'react-icons/fa';
@@ -15,6 +15,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
     { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
     { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+    { id: 'bulk-data', label: 'Bulk Data', Icon: MdCloudUpload, color: '#667eea' },
     { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
     ...(userRole === 'Admin' ? [{ id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' }] : []),
     { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }

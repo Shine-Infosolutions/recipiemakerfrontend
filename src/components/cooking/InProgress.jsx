@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
 
@@ -69,11 +70,12 @@ const InProgress = () => {
       
       if (!res.ok) {
         const error = await res.json();
-        alert(`Error: ${error.error || 'Failed to update status'}`);
+        toast.error(`Error: ${error.error || 'Failed to update status'}`);
         return;
       }
       
       fetchCookingItems();
+      toast.success(`Item marked as ${status === 'finished' ? 'finished' : 'semi-finished'}!`);
     } catch (error) {
       alert(`Error: ${error.message}`);
     }
@@ -100,7 +102,7 @@ const InProgress = () => {
 
   const confirmSemiFinished = async () => {
     if (selectedIngredients.length === 0) {
-      alert('Please select at least one ingredient to restock');
+      toast.error('Please select at least one ingredient to restock');
       return;
     }
     
@@ -120,7 +122,7 @@ const InProgress = () => {
       
       if (!res.ok) {
         const error = await res.json();
-        alert(`Error: ${error.error || 'Failed to update status'}`);
+        toast.error(`Error: ${error.error || 'Failed to update status'}`);
         return;
       }
       
@@ -129,8 +131,9 @@ const InProgress = () => {
       setSelectedIngredients([]);
       setIngredientQuantities({});
       fetchCookingItems();
+      toast.success('Ingredients restocked successfully!');
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      toast.error(`Error: ${error.message}`);
     }
   };
 

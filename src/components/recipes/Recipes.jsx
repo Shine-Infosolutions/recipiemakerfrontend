@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MdRestaurant, MdPerson, MdTimer, MdRestaurantMenu, MdClose, MdAdd, MdDelete } from 'react-icons/md';
+import toast from 'react-hot-toast';
+import { MdRestaurant, MdPerson, MdTimer, MdRestaurantMenu, MdClose, MdAdd, MdDelete, MdEdit, MdMoreVert } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
 
@@ -10,17 +11,27 @@ const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [cookingRecipe, setCookingRecipe] = useState(null);
   const [cookQuantities, setCookQuantities] = useState({});
   const [showCookModal, setShowCookModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [formData, setFormData] = useState({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [] });
   const [loading, setLoading] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState({});
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
 
   useEffect(() => {
     fetchRecipes();
     fetchInventory();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setDropdownOpen({});
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   // Show all recipes as templates for cooking
@@ -75,8 +86,11 @@ const Recipes = () => {
 
   const createRecipe = async () => {
     if (formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity)) {
-      await fetch(`${API_URL}/recipes`, {
-        method: 'POST',
+      const url = editingId ? `${API_URL}/recipes/${editingId}` : `${API_URL}/recipes`;
+      const method = editingId ? 'PUT' : 'POST';
+      
+      await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -92,9 +106,11 @@ const Recipes = () => {
         })
       });
       setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+      setEditingId(null);
       setShowForm(false);
       fetchRecipes();
       fetchInventory();
+      toast.success(editingId ? 'Recipe updated successfully!' : 'Recipe created successfully!');
     }
   };
 
@@ -112,7 +128,7 @@ const Recipes = () => {
       
       const recipe = recipes.find(r => r._id === id);
       if (!recipe) {
-        alert('Recipe not found');
+        toast.error('Recipe not found');
         return;
       }
       
@@ -138,7 +154,7 @@ const Recipes = () => {
       console.log('Response status:', res.status);
       if (!res.ok) {
         console.error('Cook failed:', data);
-        alert(data.error || 'Failed to cook recipe');
+        toast.error(data.error || 'Failed to cook recipe');
         return;
       }
       
@@ -148,13 +164,14 @@ const Recipes = () => {
       }
       
       alert(`Recipe cooked successfully!`);
+      toast.success(`Recipe "${sourceRecipe.title}" is now cooking!`);
       console.log('Refreshing recipes and inventory...');
       await fetchRecipes();
       await fetchInventory();
       console.log('Refresh complete');
       setCookQuantities({ ...cookQuantities, [id]: 1 });
     } catch (error) {
-      alert('Error cooking recipe: ' + error.message);
+      toast.error('Error cooking recipe: ' + error.message);
     } finally {
       setCookingRecipe(null);
     }
@@ -178,6 +195,23 @@ const Recipes = () => {
     } catch (error) {
       console.error('Error toggling recipe status:', error);
     }
+  };
+
+  const editRecipe = (recipe) => {
+    setFormData({
+      title: recipe.title,
+      instructions: recipe.instructions || '',
+      cookTime: recipe.cookTime || '',
+      servings: recipe.servings || '',
+      sellingPrice: recipe.sellingPrice || '',
+      ingredients: recipe.ingredients.map(ing => ({
+        inventoryId: ing.inventoryId._id,
+        quantity: ing.quantity,
+        unit: ing.unit
+      }))
+    });
+    setEditingId(recipe._id);
+    setShowForm(true);
   };
 
   return (
@@ -224,7 +258,7 @@ const Recipes = () => {
           <div className="modal modal-open">
             <div className="modal-box max-w-4xl">
               <h3 className="font-bold text-lg mb-4">
-                <MdRestaurant className="inline mr-2" /> Add Recipe
+                <MdRestaurant className="inline mr-2" /> {editingId ? 'Edit Recipe' : 'Add Recipe'}
               </h3>
               <div className="form-control mb-6">
                 <label className="label">
@@ -321,6 +355,7 @@ const Recipes = () => {
                   className="btn btn-ghost"
                   onClick={() => {
                     setShowForm(false);
+                    setEditingId(null);
                     setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
                   }}
                 >
@@ -332,7 +367,7 @@ const Recipes = () => {
                   onClick={createRecipe}
                   disabled={!formData.title || formData.ingredients.length === 0 || !formData.ingredients.every(ing => ing.inventoryId && ing.quantity)}
                 >
-                  Save Recipe
+                  {editingId ? 'Update Recipe' : 'Save Recipe'}
                 </button>
               </div>
             </div>
@@ -346,9 +381,16 @@ const Recipes = () => {
                 <GiCookingPot className="inline mr-2" /> Cook Recipe
               </h3>
               <div className="mb-4">
-                <h4 className="text-base font-semibold mb-2">{selectedRecipe.title}</h4>
-                <div className="text-sm text-gray-600">
-                  Total Revenue: <span className="font-semibold text-green-600">₹{((recipes.find(r => r._id === selectedRecipe._id)?.sellingPrice || 0) * (cookQuantities[selectedRecipe._id] || 1)).toFixed(2)}</span>
+                <h4 className="text-base font-semibold mb-3">{selectedRecipe.title}</h4>
+                <div className="bg-base-200 p-3 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Selling Price per unit:</span>
+                    <span className="font-semibold text-blue-600">₹{recipes.find(r => r._id === selectedRecipe._id)?.sellingPrice || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Total Revenue:</span>
+                    <span className="font-semibold text-green-600">₹{((recipes.find(r => r._id === selectedRecipe._id)?.sellingPrice || 0) * (cookQuantities[selectedRecipe._id] || 1)).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
               <div className="form-control mb-6">
@@ -396,7 +438,7 @@ const Recipes = () => {
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Price</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Status</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Active</th>
-                  <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Action</th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -464,33 +506,94 @@ const Recipes = () => {
                         </div>
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => {
-                            setSelectedRecipe(recipe);
-                            setCookQuantities({ ...cookQuantities, [recipe._id]: 1 });
-                            setShowCookModal(true);
-                          }}
-                          disabled={!canCookRecipe(recipe) || cookingRecipe === recipe._id || originalRecipe?.isActive === false}
-                          style={{
-                            padding: '8px 16px',
-                            background: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? '#00b894' : '#95a5a6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? 'pointer' : 'not-allowed',
-                            fontWeight: '600',
-                            fontSize: '13px',
-                            opacity: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? 1 : 0.6,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            margin: '0 auto',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {cookingRecipe === recipe._id ? <><GiCookingPot style={{ fontSize: '16px' }} /> Cooking...</> : <><GiCookingPot style={{ fontSize: '16px' }} /> Cook</>}
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button
+                            onClick={() => {
+                              setSelectedRecipe(recipe);
+                              setCookQuantities({ ...cookQuantities, [recipe._id]: 1 });
+                              setShowCookModal(true);
+                            }}
+                            disabled={!canCookRecipe(recipe) || cookingRecipe === recipe._id || originalRecipe?.isActive === false}
+                            style={{
+                              padding: '6px 12px',
+                              background: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? '#00b894' : '#95a5a6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? 'pointer' : 'not-allowed',
+                              fontWeight: '600',
+                              fontSize: '12px',
+                              opacity: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? 1 : 0.6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            {cookingRecipe === recipe._id ? <><GiCookingPot style={{ fontSize: '14px' }} /> Cooking...</> : <><GiCookingPot style={{ fontSize: '14px' }} /> Cook</>}
+                          </button>
+                          
+                          {userRole === 'Admin' && (
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDropdownOpen({ ...dropdownOpen, [recipe._id]: !dropdownOpen[recipe._id] });
+                                }}
+                                style={{
+                                  padding: '6px',
+                                  background: '#667eea',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <MdMoreVert style={{ fontSize: '16px' }} />
+                              </button>
+                              
+                              {dropdownOpen[recipe._id] && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  right: '0',
+                                  background: 'white',
+                                  border: '1px solid #e9ecef',
+                                  borderRadius: '6px',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                  zIndex: 1000,
+                                  minWidth: '120px'
+                                }}>
+                                  <button
+                                    onClick={() => {
+                                      editRecipe(originalRecipe);
+                                      setDropdownOpen({ ...dropdownOpen, [recipe._id]: false });
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '8px 12px',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      fontSize: '14px',
+                                      color: '#2d3436',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                  >
+                                    <MdEdit style={{ fontSize: '16px', color: '#667eea' }} /> Edit
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
