@@ -1,88 +1,216 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MdRestaurantMenu, MdInventory, MdFactory, MdSettings, MdDashboard } from 'react-icons/md';
+import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney, MdHistory } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
+import { FaFire, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 
-const Sidebar = ({ activeTab, setActiveTab, onLogout }) => {
-  const menuItems = [
+const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
+  const [showReportsSubmenu, setShowReportsSubmenu] = useState(false);
+
+  const navItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
     { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+    { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
     { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
     { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+    { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
+    ...(userRole === 'Admin' ? [{ id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' }] : []),
     { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
   ];
 
   return (
-    <div style={{ 
-      width: '250px', 
-      background: 'linear-gradient(180deg, #2c3e50 0%, #34495e 100%)',
-      height: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      boxShadow: '4px 0 20px rgba(0,0,0,0.15)'
-    }}>
-      <div style={{ padding: '20px 15px', borderBottom: '2px solid rgba(255,255,255,0.1)' }}>
-        <h2 style={{ color: 'white', margin: 0, fontSize: '20px', fontWeight: '700', textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>🍳 Recipe Maker</h2>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px', margin: '4px 0 0 0', fontWeight: '500' }}>Manage your kitchen</p>
-      </div>
-      
-      <div style={{ flex: 1, padding: '15px 0' }}>
-        {menuItems.map((item) => (
-          <motion.div
-            key={item.id}
-            whileHover={{ x: 6, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setActiveTab(item.id)}
-            style={{
-              padding: '12px 15px',
-              margin: '4px 10px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              background: activeTab === item.id ? 'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%)' : 'transparent',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              fontSize: '14px',
-              fontWeight: activeTab === item.id ? '600' : '500',
-              transition: 'all 0.3s',
-              borderLeft: activeTab === item.id ? `3px solid ${item.color}` : '3px solid transparent',
-              boxShadow: activeTab === item.id ? '0 4px 12px rgba(0,0,0,0.2)' : 'none'
-            }}
+    <div className="drawer-side z-50">
+      <label htmlFor="my-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
+      <div className="min-h-full w-64 text-white flex flex-col shadow-2xl relative sidebar-animated" style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%)',
+        backgroundSize: '400% 400%',
+        overflow: 'hidden'
+      }}>
+        {/* Animated background overlay */}
+        <div className="absolute inset-0 opacity-20 float-animated" style={{
+          background: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 50%), radial-gradient(circle at 40% 80%, rgba(255,255,255,0.1) 0%, transparent 50%)'
+        }}></div>
+        
+        {/* Sidebar header */}
+        <div className="p-6 border-b border-white/20 relative z-10">
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+            <span className="text-3xl animate-bounce">🍳</span>
+            <span>Recipe Maker</span>
+          </h2>
+          <p className="text-xs text-white/80 mt-2">Manage your kitchen</p>
+        </div>
+
+        {/* Menu items */}
+        <div className="flex-1 relative z-10" style={{
+          maxHeight: 'calc(100vh - 200px)',
+          overflowY: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .sidebar-menu::-webkit-scrollbar {
+                display: none !important;
+                width: 0 !important;
+              }
+            `
+          }} />
+          <div className="sidebar-menu p-4">
+            <ul className="menu gap-2">
+          {navItems.map((item, index) => (
+            <li key={item.id} style={{ animationDelay: `${index * 0.1}s` }} className="animate-fadeInUp">
+              {item.id === 'reports' && userRole === 'Admin' ? (
+                <>
+                  <a
+                    onClick={() => setShowReportsSubmenu(!showReportsSubmenu)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 text-white/90 hover:bg-white/10 hover:text-white backdrop-blur-sm cursor-pointer"
+                    style={{ backdropFilter: 'blur(10px)' }}
+                  >
+                    <item.Icon className="text-xl" />
+                    <span className="font-medium flex-1">{item.label}</span>
+                    {showReportsSubmenu ? <FaChevronDown className="text-sm" /> : <FaChevronRight className="text-sm" />}
+                  </a>
+                  {showReportsSubmenu && (
+                    <ul className="ml-4 mt-2 space-y-1">
+                      <li>
+                        <a
+                          onClick={() => {
+                            setActiveTab('inventory-report');
+                            if (window.innerWidth < 1024) {
+                              document.getElementById('my-drawer').checked = false;
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                            activeTab === 'inventory-report'
+                              ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                              : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                          }`}
+                          style={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <MdInventory className="text-lg" />
+                          <span className="font-medium">Inventory Report</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          onClick={() => {
+                            setActiveTab('recipe-report');
+                            if (window.innerWidth < 1024) {
+                              document.getElementById('my-drawer').checked = false;
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                            activeTab === 'recipe-report'
+                              ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                              : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                          }`}
+                          style={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <MdRestaurantMenu className="text-lg" />
+                          <span className="font-medium">Recipe Report</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          onClick={() => {
+                            setActiveTab('production-report');
+                            if (window.innerWidth < 1024) {
+                              document.getElementById('my-drawer').checked = false;
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                            activeTab === 'production-report'
+                              ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                              : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                          }`}
+                          style={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <GiCookingPot className="text-lg" />
+                          <span className="font-medium">Production Report</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          onClick={() => {
+                            setActiveTab('revenue-report');
+                            if (window.innerWidth < 1024) {
+                              document.getElementById('my-drawer').checked = false;
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                            activeTab === 'revenue-report'
+                              ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                              : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                          }`}
+                          style={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <MdAttachMoney className="text-lg" />
+                          <span className="font-medium">Revenue Report</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          onClick={() => {
+                            setActiveTab('stock-logs-report');
+                            if (window.innerWidth < 1024) {
+                              document.getElementById('my-drawer').checked = false;
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                            activeTab === 'stock-logs-report'
+                              ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                              : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                          }`}
+                          style={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <MdHistory className="text-lg" />
+                          <span className="font-medium">Stock Logs</span>
+                        </a>
+                      </li>
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <a
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (window.innerWidth < 1024) {
+                      document.getElementById('my-drawer').checked = false;
+                    }
+                  }}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                    activeTab === item.id
+                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                      : 'text-white/90 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                  }`}
+                  style={{
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: activeTab === item.id ? '0 8px 32px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  <item.Icon className="text-xl" />
+                  <span className="font-medium">{item.label}</span>
+                </a>
+              )}
+            </li>
+          ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Logout button */}
+        <div className="p-4 border-t border-white/20 relative z-10">
+          <button
+            onClick={onLogout}
+            className="w-full gap-2 px-4 py-3 bg-red-500/80 hover:bg-red-600 text-white rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm border border-white/20 font-medium flex items-center justify-center"
+            style={{ backdropFilter: 'blur(10px)' }}
           >
-            <span style={{ fontSize: '20px', color: activeTab === item.id ? item.color : 'rgba(255,255,255,0.7)', flexShrink: 0 }}><item.Icon /></span>
-            <span style={{ color: activeTab === item.id ? 'white' : 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-          </motion.div>
-        ))}
-      </div>
-      
-      <div style={{ padding: '15px' }}>
-        <motion.button
-          whileHover={{ scale: 1.03, boxShadow: '0 6px 20px rgba(231,76,60,0.4)' }}
-          whileTap={{ scale: 0.97 }}
-          onClick={onLogout}
-          style={{
-            width: '100%',
-            padding: '12px',
-            background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(231,76,60,0.3)'
-          }}
-        >
-          <BiLogOut style={{ fontSize: '18px' }} />
-          Logout
-        </motion.button>
+            <BiLogOut className="text-lg" />
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );
