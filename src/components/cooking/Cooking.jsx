@@ -8,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 
 const Cooking = () => {
   const [cookedRecipes, setCookedRecipes] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -15,7 +16,20 @@ const Cooking = () => {
 
   useEffect(() => {
     fetchCookedRecipes();
+    fetchRecipes();
   }, []);
+
+  const fetchRecipes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/recipes`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      setRecipes(data);
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
+    }
+  };
 
   const fetchCookedRecipes = async () => {
     setLoading(true);
@@ -91,18 +105,25 @@ const Cooking = () => {
               <tr>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Recipe Name</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Quantity</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Total Value</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Date</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRecipes.map((recipe) => (
+              {filteredRecipes.map((recipe) => {
+                const recipeData = recipes.find(r => r._id === recipe.recipeId);
+                const totalValue = (recipeData?.sellingPrice || 0) * recipe.quantity;
+                return (
                 <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{recipe.title}</td>
                   <td style={{ padding: '16px' }}>
                     {recipe.quantity > 1 && (
                       <span style={{ fontSize: '11px', color: '#00b894', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>x{recipe.quantity}</span>
                     )}
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ fontSize: '14px', color: '#00b894', fontWeight: '600' }}>₹{totalValue.toFixed(2)}</span>
                   </td>
                   <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -117,7 +138,8 @@ const Cooking = () => {
                     {recipe.createdAt && new Date(recipe.createdAt).toLocaleString()}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

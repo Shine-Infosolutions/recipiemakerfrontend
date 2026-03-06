@@ -14,8 +14,9 @@ const Recipes = () => {
   const [cookQuantities, setCookQuantities] = useState({});
   const [showCookModal, setShowCookModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
-  const [formData, setFormData] = useState({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [] });
+  const [formData, setFormData] = useState({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [] });
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
 
   useEffect(() => {
     fetchRecipes();
@@ -82,6 +83,7 @@ const Recipes = () => {
         },
         body: JSON.stringify({
           title: formData.title,
+          sellingPrice: parseFloat(formData.sellingPrice) || 0,
           ingredients: formData.ingredients.map(ing => ({
             inventoryId: ing.inventoryId,
             quantity: parseFloat(ing.quantity),
@@ -89,7 +91,7 @@ const Recipes = () => {
           }))
         })
       });
-      setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+      setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
       setShowForm(false);
       fetchRecipes();
       fetchInventory();
@@ -166,6 +168,18 @@ const Recipes = () => {
     fetchRecipes();
   };
 
+  const toggleRecipeStatus = async (id) => {
+    try {
+      await fetch(`${API_URL}/recipes/${id}/toggle-status`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchRecipes();
+    } catch (error) {
+      console.error('Error toggling recipe status:', error);
+    }
+  };
+
   return (
     <>
       <div style={{ 
@@ -186,7 +200,7 @@ const Recipes = () => {
             whileTap={{ scale: 0.95 }}
             onClick={() => {
               setShowForm(!showForm);
-              setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+              setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
             }}
             style={{
               padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
@@ -222,6 +236,19 @@ const Recipes = () => {
                   className="input input-bordered"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+              
+              <div className="form-control mb-6">
+                <label className="label">
+                  <span className="label-text">Selling Price (₹)</span>
+                </label>
+                <input
+                  type="number"
+                  placeholder="Enter selling price"
+                  className="input input-bordered"
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
                 />
               </div>
               
@@ -294,7 +321,7 @@ const Recipes = () => {
                   className="btn btn-ghost"
                   onClick={() => {
                     setShowForm(false);
-                    setFormData({ title: '', instructions: '', cookTime: '', servings: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+                    setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
                   }}
                 >
                   Cancel
@@ -320,6 +347,9 @@ const Recipes = () => {
               </h3>
               <div className="mb-4">
                 <h4 className="text-base font-semibold mb-2">{selectedRecipe.title}</h4>
+                <div className="text-sm text-gray-600">
+                  Total Revenue: <span className="font-semibold text-green-600">₹{((recipes.find(r => r._id === selectedRecipe._id)?.sellingPrice || 0) * (cookQuantities[selectedRecipe._id] || 1)).toFixed(2)}</span>
+                </div>
               </div>
               <div className="form-control mb-6">
                 <label className="label">
@@ -363,12 +393,15 @@ const Recipes = () => {
                 <tr style={{ background: '#f1f3f5' }}>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Recipe Name</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Ingredients</th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Price</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Status</th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Active</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {allRecipes.map((recipe) => {
+                  const originalRecipe = recipes.find(r => r._id === recipe._id);
                   return (
                     <tr
                       key={recipe._id}
@@ -404,9 +437,31 @@ const Recipes = () => {
                         </div>
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '14px', color: '#00b894', fontWeight: '600' }}>
+                          ₹{originalRecipe?.sellingPrice || 0}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
                         <span style={{ fontSize: '11px', color: '#636e72', background: '#f8f9fa', padding: '6px 12px', borderRadius: '12px', fontWeight: '600', display: 'inline-block' }}>
                           Available
                         </span>
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <div className="form-control">
+                          <label className="label cursor-pointer justify-center">
+                            <input 
+                              type="checkbox" 
+                              className="toggle toggle-sm" 
+                              style={{
+                                backgroundColor: originalRecipe?.isActive !== false ? '#10b981' : '#ef4444',
+                                borderColor: originalRecipe?.isActive !== false ? '#10b981' : '#ef4444'
+                              }}
+                              checked={originalRecipe?.isActive !== false}
+                              onChange={() => toggleRecipeStatus(recipe._id)}
+                              disabled={userRole !== 'Admin'}
+                            />
+                          </label>
+                        </div>
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <button
@@ -415,17 +470,17 @@ const Recipes = () => {
                             setCookQuantities({ ...cookQuantities, [recipe._id]: 1 });
                             setShowCookModal(true);
                           }}
-                          disabled={!canCookRecipe(recipe) || cookingRecipe === recipe._id}
+                          disabled={!canCookRecipe(recipe) || cookingRecipe === recipe._id || originalRecipe?.isActive === false}
                           style={{
                             padding: '8px 16px',
-                            background: canCookRecipe(recipe) && cookingRecipe !== recipe._id ? '#00b894' : '#95a5a6',
+                            background: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? '#00b894' : '#95a5a6',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
-                            cursor: canCookRecipe(recipe) && cookingRecipe !== recipe._id ? 'pointer' : 'not-allowed',
+                            cursor: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? 'pointer' : 'not-allowed',
                             fontWeight: '600',
                             fontSize: '13px',
-                            opacity: canCookRecipe(recipe) && cookingRecipe !== recipe._id ? 1 : 0.6,
+                            opacity: canCookRecipe(recipe) && cookingRecipe !== recipe._id && originalRecipe?.isActive !== false ? 1 : 0.6,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -439,7 +494,7 @@ const Recipes = () => {
                       </td>
                     </tr>
                   );
-                })}
+                })}}
               </tbody>
             </table>
           </div>

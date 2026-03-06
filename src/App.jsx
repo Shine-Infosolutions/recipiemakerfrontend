@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople } from 'react-icons/md';
+import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
-import { FaFire } from 'react-icons/fa';
+import { FaFire, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import Register from './components/Register';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
@@ -14,6 +14,10 @@ import Cooking from './components/cooking/Cooking';
 import SemiFinished from './components/semifinished/SemiFinished';
 import Users from './components/users/Users';
 import ChangePassword from './components/ChangePassword';
+import InventoryReport from './components/reports/InventoryReport';
+import RecipeReport from './components/reports/RecipeReport';
+import ProductionReport from './components/reports/ProductionReport';
+import RevenueReport from './components/reports/RevenueReport';
 import { apiRequest, API_URL } from './utils/api';
 
 const App = () => {
@@ -22,6 +26,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
+  const [showReportsSubmenu, setShowReportsSubmenu] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -82,6 +87,7 @@ const App = () => {
     { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
     { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
     { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+    { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
     ...(userRole === 'Admin' ? [{ id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' }] : []),
     { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
   ];
@@ -113,16 +119,26 @@ const App = () => {
           {activeTab === 'cooking' && <Cooking />}
           {activeTab === 'semifinished' && <SemiFinished />}
           {activeTab === 'users' && userRole === 'Admin' && <Users />}
+          {activeTab === 'inventory-report' && userRole === 'Admin' && <InventoryReport />}
+          {activeTab === 'recipe-report' && userRole === 'Admin' && <RecipeReport />}
+          {activeTab === 'production-report' && userRole === 'Admin' && <ProductionReport />}
+          {activeTab === 'revenue-report' && userRole === 'Admin' && <RevenueReport />}
           {activeTab === 'settings' && <ChangePassword />}
         </div>
       </div>
 
       {/* Sidebar */}
-      <div className="drawer-side z-50">
+      <div className="drawer-side z-50 scrollbar-hide" style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
+      }}>
         <label htmlFor="my-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
-        <div className="min-h-full w-64 text-white flex flex-col shadow-2xl relative overflow-hidden sidebar-animated" style={{
+        <div className="min-h-full w-64 text-white flex flex-col shadow-2xl relative overflow-hidden sidebar-animated scrollbar-hide" style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%)',
-          backgroundSize: '400% 400%'
+          backgroundSize: '400% 400%',
+          overflowY: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
         }}>
           {/* Animated background overlay */}
           <div className="absolute inset-0 opacity-20 float-animated" style={{
@@ -139,29 +155,123 @@ const App = () => {
           </div>
 
           {/* Menu items */}
-          <ul className="menu p-4 flex-1 gap-2 relative z-10">
+          <ul className="menu p-4 flex-1 gap-2 relative z-10 overflow-y-auto scrollbar-hide">
             {navItems.map((item, index) => (
               <li key={item.id} style={{ animationDelay: `${index * 0.1}s` }} className="animate-fadeInUp">
-                <a
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    if (window.innerWidth < 1024) {
-                      document.getElementById('my-drawer').checked = false;
-                    }
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 ${
-                    activeTab === item.id
-                      ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
-                      : 'text-white/90 hover:bg-white/10 hover:text-white backdrop-blur-sm'
-                  }`}
-                  style={{
-                    backdropFilter: 'blur(10px)',
-                    boxShadow: activeTab === item.id ? '0 8px 32px rgba(0,0,0,0.1)' : 'none'
-                  }}
-                >
-                  <item.Icon className="text-xl" />
-                  <span className="font-medium">{item.label}</span>
-                </a>
+                {item.id === 'reports' && userRole === 'Admin' ? (
+                  <>
+                    <a
+                      onClick={() => setShowReportsSubmenu(!showReportsSubmenu)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 text-white/90 hover:bg-white/10 hover:text-white backdrop-blur-sm cursor-pointer"
+                      style={{ backdropFilter: 'blur(10px)' }}
+                    >
+                      <item.Icon className="text-xl" />
+                      <span className="font-medium flex-1">{item.label}</span>
+                      {showReportsSubmenu ? <FaChevronDown className="text-sm" /> : <FaChevronRight className="text-sm" />}
+                    </a>
+                    {showReportsSubmenu && (
+                      <ul className="ml-4 mt-2 space-y-1">
+                        <li>
+                          <a
+                            onClick={() => {
+                              setActiveTab('inventory-report');
+                              if (window.innerWidth < 1024) {
+                                document.getElementById('my-drawer').checked = false;
+                              }
+                            }}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                              activeTab === 'inventory-report'
+                                ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                            }`}
+                            style={{ backdropFilter: 'blur(10px)' }}
+                          >
+                            <MdInventory className="text-lg" />
+                            <span className="font-medium">Inventory Report</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            onClick={() => {
+                              setActiveTab('recipe-report');
+                              if (window.innerWidth < 1024) {
+                                document.getElementById('my-drawer').checked = false;
+                              }
+                            }}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                              activeTab === 'recipe-report'
+                                ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                            }`}
+                            style={{ backdropFilter: 'blur(10px)' }}
+                          >
+                            <MdRestaurantMenu className="text-lg" />
+                            <span className="font-medium">Recipe Report</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            onClick={() => {
+                              setActiveTab('production-report');
+                              if (window.innerWidth < 1024) {
+                                document.getElementById('my-drawer').checked = false;
+                              }
+                            }}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                              activeTab === 'production-report'
+                                ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                            }`}
+                            style={{ backdropFilter: 'blur(10px)' }}
+                          >
+                            <GiCookingPot className="text-lg" />
+                            <span className="font-medium">Production Report</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            onClick={() => {
+                              setActiveTab('revenue-report');
+                              if (window.innerWidth < 1024) {
+                                document.getElementById('my-drawer').checked = false;
+                              }
+                            }}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                              activeTab === 'revenue-report'
+                                ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                            }`}
+                            style={{ backdropFilter: 'blur(10px)' }}
+                          >
+                            <MdAttachMoney className="text-lg" />
+                            <span className="font-medium">Revenue Report</span>
+                          </a>
+                        </li>
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <a
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (window.innerWidth < 1024) {
+                        document.getElementById('my-drawer').checked = false;
+                      }
+                    }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                      activeTab === item.id
+                        ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                        : 'text-white/90 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                    }`}
+                    style={{
+                      backdropFilter: 'blur(10px)',
+                      boxShadow: activeTab === item.id ? '0 8px 32px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                  >
+                    <item.Icon className="text-xl" />
+                    <span className="font-medium">{item.label}</span>
+                  </a>
+                )}
               </li>
             ))}
           </ul>

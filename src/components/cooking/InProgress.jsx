@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 
 const InProgress = () => {
   const [cookingItems, setCookingItems] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRestockModal, setShowRestockModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -15,7 +16,20 @@ const InProgress = () => {
 
   useEffect(() => {
     fetchCookingItems();
+    fetchRecipes();
   }, []);
+
+  const fetchRecipes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/recipes`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      setRecipes(data);
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
+    }
+  };
 
   const fetchCookingItems = async () => {
     setLoading(true);
@@ -142,17 +156,24 @@ const InProgress = () => {
               <tr>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Recipe Name</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Quantity</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Total Value</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Date</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {cookingItems.map((item) => (
+              {cookingItems.map((item) => {
+                const recipe = recipes.find(r => r._id === item.recipeId);
+                const totalValue = (recipe?.sellingPrice || 0) * item.quantity;
+                return (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{item.title}</td>
                   <td style={{ padding: '16px' }}>
                     <span style={{ fontSize: '11px', color: '#ffa502', background: '#fff3e0', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>x{item.quantity}</span>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ fontSize: '14px', color: '#00b894', fontWeight: '600' }}>₹{totalValue.toFixed(2)}</span>
                   </td>
                   <td style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -177,7 +198,8 @@ const InProgress = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
