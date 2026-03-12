@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MdDashboard, MdInventory, MdRestaurant, MdRestaurantMenu, MdTrendingUp, MdTrendingDown, MdAttachMoney } from 'react-icons/md';
+import { MdDashboard, MdInventory, MdRestaurant, MdRestaurantMenu, MdTrendingUp, MdTrendingDown, MdAttachMoney, MdError } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
 
@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [inventory, setInventory] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [cookedItems, setCookedItems] = useState([]);
+  const [lossItems, setLossItems] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -22,14 +23,61 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const [invRes, recRes, cookedRes] = await Promise.all([
-      fetch(`${API_URL}/inventory`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-      fetch(`${API_URL}/recipes`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-      fetch(`${API_URL}/cooked-items`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-    ]);
-    setInventory(await invRes.json());
-    setRecipes(await recRes.json());
-    setCookedItems(await cookedRes.json());
+    try {
+      const [invRes, recRes, cookedRes, lossRes] = await Promise.all([
+        fetch(`${API_URL}/inventory`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+        fetch(`${API_URL}/recipes`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+        fetch(`${API_URL}/cooked-items`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+        fetch(`${API_URL}/losses`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      ]);
+      
+      // Handle inventory response
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        setInventory(Array.isArray(invData) ? invData : []);
+      } else {
+        console.error('Failed to fetch inventory');
+        setInventory([]);
+        if (invRes.status === 401) {
+          localStorage.removeItem('token');
+          window.location.reload();
+          return;
+        }
+      }
+      
+      // Handle recipes response
+      if (recRes.ok) {
+        const recData = await recRes.json();
+        setRecipes(Array.isArray(recData) ? recData : []);
+      } else {
+        console.error('Failed to fetch recipes');
+        setRecipes([]);
+      }
+      
+      // Handle cooked items response
+      if (cookedRes.ok) {
+        const cookedData = await cookedRes.json();
+        setCookedItems(Array.isArray(cookedData) ? cookedData : []);
+      } else {
+        console.error('Failed to fetch cooked items');
+        setCookedItems([]);
+      }
+      
+      // Handle loss items response
+      if (lossRes.ok) {
+        const lossData = await lossRes.json();
+        setLossItems(Array.isArray(lossData) ? lossData : []);
+      } else {
+        console.error('Failed to fetch loss items');
+        setLossItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setInventory([]);
+      setRecipes([]);
+      setCookedItems([]);
+      setLossItems([]);
+    }
     setLoading(false);
   };
 
@@ -67,7 +115,7 @@ const Dashboard = () => {
   const rawMaterials = cookedItems.filter(item => item.status === 'cooking');
 
   // Calculate ingredients used and restocked from cooked items
-  const usedIngredients = cookedItems
+  const usedIngredients = Array.isArray(cookedItems) ? cookedItems
     .filter(item => item.status === 'finished' || item.status === 'cooking')
     .flatMap(item => item.ingredients || [])
     .reduce((acc, ing) => {
@@ -78,9 +126,9 @@ const Dashboard = () => {
         acc.push({ ...ing });
       }
       return acc;
-    }, []);
+    }, []) : [];
 
-  const restockedIngredients = cookedItems
+  const restockedIngredients = Array.isArray(cookedItems) ? cookedItems
     .filter(item => item.status === 'semi-finished')
     .flatMap(item => item.ingredients || [])
     .reduce((acc, ing) => {
@@ -91,15 +139,15 @@ const Dashboard = () => {
         acc.push({ ...ing });
       }
       return acc;
-    }, []);
+    }, []) : [];
 
   const ingredientsUsed = usedIngredients.reduce((sum, ing) => sum + ing.quantity, 0);
   const ingredientsRestocked = restockedIngredients.reduce((sum, ing) => sum + ing.quantity, 0);
 
   // Statistics - remove status-based filtering since recipes are just templates
-  const totalInventoryValue = inventory.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0);
-  const lowStockItems = inventory.filter(item => item.quantity < 10).length;
-  const categories = [...new Set(inventory.map(item => item.category))];
+  const totalInventoryValue = Array.isArray(inventory) ? inventory.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0) : 0;
+  const lowStockItems = Array.isArray(inventory) ? inventory.filter(item => item.quantity < 10).length : 0;
+  const categories = Array.isArray(inventory) ? [...new Set(inventory.map(item => item.category))] : [];
 
   const StatCard = ({ icon, title, value, color, subtitle, index = 0 }) => (
     <motion.div
@@ -281,13 +329,14 @@ const Dashboard = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}
         >
-          <StatCard icon={<MdInventory />} title="Total Items" value={inventory.length} color="#667eea" subtitle={`Worth ₹${totalInventoryValue.toFixed(2)}`} index={0} />
+          <StatCard icon={<MdInventory />} title="Total Items" value={Array.isArray(inventory) ? inventory.length : 0} color="#667eea" subtitle={`Worth ₹${totalInventoryValue.toFixed(2)}`} index={0} />
           <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ff4757" subtitle="Items below 10 units" index={1} />
-          <StatCard icon={<MdRestaurantMenu />} title="Total Recipes" value={recipes.length} color="#667eea" subtitle="Available templates" index={2} />
-          <StatCard icon={<MdRestaurant />} title="Finished Goods" value={cookedItems.filter(item => item.status === 'finished').length} color="#00b894" subtitle="Completed items" index={3} />
-          <StatCard icon={<GiCookingPot />} title="Semi-Finished" value={cookedItems.filter(item => item.status === 'semi-finished').length} color="#ffa502" subtitle="Partial items" index={4} />
-          <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From cooking" index={5} />
-          <StatCard icon={<MdTrendingUp />} title="Ingredients Restocked" value={ingredientsRestocked} color="#00b894" subtitle="From cancelled" index={6} />
+          <StatCard icon={<MdRestaurantMenu />} title="Total Recipes" value={Array.isArray(recipes) ? recipes.length : 0} color="#667eea" subtitle="Available templates" index={2} />
+          <StatCard icon={<MdRestaurant />} title="Finished Goods" value={Array.isArray(cookedItems) ? cookedItems.filter(item => item.status === 'finished').length : 0} color="#00b894" subtitle="Completed items" index={3} />
+          <StatCard icon={<GiCookingPot />} title="Semi-Finished" value={Array.isArray(cookedItems) ? cookedItems.filter(item => item.status === 'semi-finished').length : 0} color="#ffa502" subtitle="Partial items" index={4} />
+          <StatCard icon={<MdError />} title="Loss Items" value={Array.isArray(lossItems) ? lossItems.length : 0} color="#ff4757" subtitle="Lost during cooking" index={5} />
+          <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From cooking" index={6} />
+          <StatCard icon={<MdTrendingUp />} title="Ingredients Restocked" value={ingredientsRestocked} color="#00b894" subtitle="From cancelled" index={7} />
         </motion.div>
 
         {/* Two Column Layout */}
@@ -341,7 +390,7 @@ const Dashboard = () => {
               <MdInventory style={{ color: '#667eea' }} /> Inventory Items ({filteredInventory.length})
             </h3>
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {filteredInventory.slice(0, 10).map(item => (
+              {Array.isArray(filteredInventory) && filteredInventory.slice(0, 10).map(item => (
                 <div key={item._id} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>{item.name}</p>
@@ -355,7 +404,7 @@ const Dashboard = () => {
                   </div>
                 </div>
               ))}
-              {filteredInventory.length === 0 && (
+              {Array.isArray(filteredInventory) && filteredInventory.length === 0 && (
                 <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No items found</p>
               )}
             </div>
@@ -368,8 +417,8 @@ const Dashboard = () => {
             <MdAttachMoney style={{ color: '#667eea' }} /> Inventory by Category
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            {categories.map(cat => {
-              const items = inventory.filter(item => item.category === cat);
+            {Array.isArray(categories) && categories.map(cat => {
+              const items = Array.isArray(inventory) ? inventory.filter(item => item.category === cat) : [];
               const totalValue = items.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0);
               return (
                 <div key={cat} style={{ padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>

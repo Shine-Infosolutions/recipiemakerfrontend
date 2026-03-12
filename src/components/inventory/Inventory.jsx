@@ -19,11 +19,21 @@ const Inventory = () => {
 
   const fetchItems = async () => {
     setLoading(true);
-    const res = await fetch(`${API_URL}/inventory`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    const data = await res.json();
-    setItems(data);
+    try {
+      const res = await fetch(`${API_URL}/inventory`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setItems(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch inventory');
+        setItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      setItems([]);
+    }
     setLoading(false);
   };
 
@@ -257,7 +267,7 @@ const Inventory = () => {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {Array.isArray(items) && items.map((item) => (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436' }}>{item.productCode || '-'}</td>
                   <td className="font-semibold" style={{ color: '#2d3436' }}>{item.name}</td>
@@ -287,7 +297,7 @@ const Inventory = () => {
           </table>
         </div>
 
-        {items.length === 0 && !showForm && (
+        {Array.isArray(items) && items.length === 0 && !showForm && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

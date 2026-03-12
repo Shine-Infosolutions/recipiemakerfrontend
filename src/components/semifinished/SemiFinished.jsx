@@ -18,16 +18,16 @@ const SemiFinished = () => {
   const fetchCancelledRecipes = async () => {
     setLoading(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
       const res = await fetch(`${API_URL}/cooked-items`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        signal: controller.signal
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      clearTimeout(timeoutId);
       
-      if (!res.ok) throw new Error('Failed to fetch');
+      if (!res.ok) {
+        console.error('Failed to fetch cancelled recipes');
+        setCancelledRecipes([]);
+        return;
+      }
+      
       const data = await res.json();
       setCancelledRecipes(data.filter(item => item.status === 'semi-finished'));
     } catch (error) {
