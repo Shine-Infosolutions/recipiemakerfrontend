@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
+import LossModal from '../common/LossModal';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -15,11 +16,6 @@ const InProgress = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [ingredientQuantities, setIngredientQuantities] = useState({});
-  const [lossType, setLossType] = useState(''); // Free text input for loss type
-  const [lossReason, setLossReason] = useState(''); // Free text input for loss reason
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [showRemakeModal, setShowRemakeModal] = useState(false);
-  const [remakeDecision, setRemakeDecision] = useState(null); // 'yes' or 'no'
 
   useEffect(() => {
     fetchCookingItems();
@@ -108,91 +104,10 @@ const InProgress = () => {
 
   const openLossModal = (item) => {
     setSelectedItem(item);
-    setLossType(''); // Reset to empty for keyboard input
-    setLossReason(''); // Reset loss reason description
-    // Initialize quantities with original amounts (not 0)
-    const quantities = {};
-    item.ingredients.forEach(ing => {
-      const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-      quantities[ingId] = ing.quantity; // Show original quantity as default
-    });
-    setIngredientQuantities(quantities);
-    setSelectedIngredients([]);
     setShowLossModal(true);
   };
 
-  const confirmLoss = async () => {
-    try {
-      if (!lossType.trim()) {
-        toast.error('Please enter the type of loss');
-        return;
-      }
 
-      if (!lossReason.trim()) {
-        toast.error('Please provide a reason for the loss');
-        return;
-      }
-
-      // Check if any ingredients have lost quantities > 0
-      const hasLostIngredients = Object.values(ingredientQuantities).some(qty => qty > 0);
-      if (!hasLostIngredients) {
-        toast.error('Please enter lost quantities for at least one ingredient');
-        return;
-      }
-
-      // Show confirmation modal before proceeding
-      setShowConfirmationModal(true);
-    } catch (error) {
-      toast.error(`Error: ${error.message}`);
-    }
-  };
-
-  const proceedWithLoss = async (decision = null) => {
-    try {
-      const finalDecision = decision || remakeDecision;
-      
-      const lossData = {
-        cookedItemId: selectedItem._id,
-        lossType: lossType.trim(),
-        lossReason: lossReason.trim(),
-        lostQuantities: ingredientQuantities,
-        remakeWithFreshIngredients: finalDecision === 'yes'
-      };
-
-      const res = await fetch(`${API_URL}/losses/from-cooking`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(lossData)
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        toast.error(`Error: ${error.error || 'Failed to record loss'}`);
-        return;
-      }
-      
-      setShowLossModal(false);
-      setShowConfirmationModal(false);
-      setShowRemakeModal(false);
-      setSelectedItem(null);
-      setSelectedIngredients([]);
-      setIngredientQuantities({});
-      setLossReason('');
-      setRemakeDecision(null);
-      fetchCookingItems();
-      
-      if (finalDecision === 'yes') {
-        toast.success(`Loss recorded and fresh ingredients automatically used to restart cooking!`);
-      } else {
-        toast.success(`Loss recorded successfully.`);
-      }
-    } catch (error) {
-      toast.error(`Error: ${error.message}`);
-    }
-  };
   const confirmSemiFinished = async () => {
     if (selectedIngredients.length === 0) {
       toast.error('Please select at least one ingredient to restock');
@@ -397,253 +312,15 @@ const InProgress = () => {
         </div>
       )}
 
-      {showLossModal && selectedItem && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-2xl">
-            <h3 className="font-bold text-lg mb-4">
-              Record Loss for Recipe
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Enter the type of loss and reason using keyboard input:
-            </p>
-            
-            {/* Loss Type Input */}
-            <div className="form-control mb-4">
-              <label className="label">
-                <span className="label-text font-semibold">Type of Loss</span>
-              </label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                placeholder="Enter loss type (e.g., partial damage, complete spoilage, half burnt, etc.)"
-                value={lossType}
-                onChange={(e) => setLossType(e.target.value)}
-              />
-            </div>
-
-            {/* Loss Reason Input */}
-            <div className="form-control mb-6">
-              <label className="label">
-                <span className="label-text font-semibold">Reason for Loss</span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered w-full"
-                placeholder="Describe the reason for loss (e.g., left on stove too long, power outage, ingredient expired, etc.)"
-                value={lossReason}
-                onChange={(e) => setLossReason(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            {/* Ingredient Loss Quantities */}
-            <div className="mb-6">
-              <label className="label">
-                <span className="label-text font-semibold">Enter Lost Quantities for Each Ingredient</span>
-              </label>
-              <p className="text-sm text-gray-600 mb-3">
-                Enter the quantity lost for each ingredient (enter 0 if ingredient was not lost):
-              </p>
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {selectedItem.ingredients?.map((ing, idx) => {
-                  const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                  return (
-                    <div key={idx} className="card bg-base-200 p-3">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <span className="font-semibold text-sm">
-                            {ing.name || 'Unknown'}
-                          </span>
-                          <div className="text-xs text-gray-600 mt-1">
-                            Available: {ing.quantity} {ing.unit}
-                          </div>
-                        </div>
-                        <div className="form-control">
-                          <label className="label">
-                            <span className="label-text text-xs">Lost Quantity</span>
-                          </label>
-                          <input
-                            type="number"
-                            className="input input-bordered input-sm w-24"
-                            value={ingredientQuantities[ingId] || ing.quantity}
-                            onChange={(e) => {
-                              setIngredientQuantities({
-                                ...ingredientQuantities,
-                                [ingId]: parseFloat(e.target.value) || 0
-                              });
-                            }}
-                            min="0"
-                            max={ing.quantity}
-                            step="0.1"
-                            placeholder={ing.quantity.toString()}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-600 font-medium min-w-[3rem]">
-                          {ing.unit}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShowLossModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={confirmLoss}
-              >
-                Record Loss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {showConfirmationModal && selectedItem && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-lg">
-            <h3 className="font-bold text-lg mb-4 text-warning">
-              ⚠️ Confirm Loss
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="alert alert-info">
-                <div>
-                  <h4 className="font-semibold">What will happen:</h4>
-                  <ul className="text-sm mt-2 space-y-1">
-                    <li>• Record loss: "{lossType}"</li>
-                    <li>• Lost ingredients remain consumed (wasted/lost)</li>
-                    <li>• The cooking item will be updated based on loss</li>
-                    <li>• You can cook replacement ingredients from Recipes page if needed</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="card bg-base-200 p-4">
-                <h5 className="font-semibold mb-2">Ingredients that will remain consumed (lost):</h5>
-                <div className="space-y-2">
-                  {selectedItem.ingredients?.filter(ing => {
-                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                    return (ingredientQuantities[ingId] || 0) > 0;
-                  }).map((ing, idx) => {
-                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                    const quantity = (ingredientQuantities[ingId] || 0) * selectedItem.quantity;
-                    return (
-                      <div key={idx} className="flex justify-between text-sm">
-                        <span>{ing.name}</span>
-                        <span className="font-medium">{quantity} {ing.unit}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
-                  <strong>Loss Reason:</strong> {lossReason}
-                </p>
-              </div>
-            </div>
-
-            <div className="modal-action mt-6">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShowConfirmationModal(false)}
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={() => setShowRemakeModal(true)}
-              >
-                Confirm Loss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remake Decision Modal */}
-      {showRemakeModal && selectedItem && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-4 text-primary">
-              🍳 Use Fresh Ingredients?
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="alert alert-warning">
-                <div>
-                  <p className="text-sm">
-                    The ingredients are spoiled/lost. Do you want to automatically use fresh ingredients from inventory to {lossType === 'complete' ? 'remake the entire recipe' : 'replace the lost ingredients'}?
-                  </p>
-                </div>
-              </div>
-
-              <div className="card bg-base-200 p-4">
-                <h5 className="font-semibold mb-2">Fresh ingredients needed from inventory:</h5>
-                <div className="space-y-2">
-                  {selectedItem.ingredients?.filter(ing => {
-                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                    return (ingredientQuantities[ingId] || 0) > 0;
-                  }).map((ing, idx) => {
-                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                    const quantity = ingredientQuantities[ingId] || 0;
-                    return (
-                      <div key={idx} className="flex justify-between text-sm">
-                        <span>{ing.name}</span>
-                        <span className="font-medium text-primary">{quantity} {ing.unit}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  className="btn btn-success flex-1"
-                  onClick={() => {
-                    proceedWithLoss('yes');
-                  }}
-                >
-                  ✅ Yes, Use Fresh Ingredients
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost flex-1"
-                  onClick={() => {
-                    proceedWithLoss('no');
-                  }}
-                >
-                  ❌ No, Just Record Loss
-                </button>
-              </div>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => setShowRemakeModal(false)}
-                >
-                  Go Back
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <LossModal
+        isOpen={showLossModal}
+        onClose={() => {
+          setShowLossModal(false);
+          setSelectedItem(null);
+        }}
+        selectedItem={selectedItem}
+        onSuccess={fetchCookingItems}
+      />
     </>
   );
 };

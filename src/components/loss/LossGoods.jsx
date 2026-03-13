@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { MdError, MdDelete, MdRestaurantMenu, MdAdd } from 'react-icons/md';
+import { MdError, MdDelete, MdRestaurantMenu, MdAdd, MdCalendarToday } from 'react-icons/md';
 import { BiError } from 'react-icons/bi';
 import Loading from '../common/Loading';
 import ManualLossForm from './ManualLossForm';
@@ -14,6 +14,9 @@ const LossGoods = () => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
   const [showManualForm, setShowManualForm] = useState(false);
+  const [filterType, setFilterType] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     fetchLossItems();
@@ -84,7 +87,31 @@ const LossGoods = () => {
     return item.lossValue || 0;
   };
 
-  const totalLossValue = lossItems.reduce((sum, item) => sum + calculateLossValue(item), 0);
+  const filterLossItems = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    return lossItems.filter(item => {
+      if (!item.lossDate) return false;
+      const itemDate = new Date(item.lossDate);
+      
+      if (filterType === 'today') {
+        return itemDate >= today;
+      } else if (filterType === 'range' && startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        
+        return itemDate >= start && itemDate <= end;
+      }
+      return true;
+    });
+  };
+
+  const filteredLossItems = filterLossItems();
+  const totalLossValue = filteredLossItems.reduce((sum, item) => sum + calculateLossValue(item), 0);
 
   return (
     <>
@@ -114,7 +141,7 @@ const LossGoods = () => {
           }}>
             <div>
               <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Items</p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>{lossItems.length}</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>{filteredLossItems.length}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Value</p>
@@ -141,6 +168,112 @@ const LossGoods = () => {
           </div>
         </div>
         
+        {/* Date Filter Controls */}
+        <div style={{ 
+          background: 'white', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
+          border: '1px solid #e9ecef',
+          marginBottom: '20px'
+        }}>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', marginRight: '8px' }}>Filter by:</label>
+              <select 
+                value={filterType} 
+                onChange={(e) => setFilterType(e.target.value)}
+                style={{ 
+                  padding: '8px 12px', 
+                  border: '1px solid #e9ecef', 
+                  borderRadius: '6px', 
+                  fontSize: '14px',
+                  background: 'white',
+                  color: '#2d3436'
+                }}
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="range">Date Range</option>
+              </select>
+            </div>
+            
+            {filterType === 'range' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MdCalendarToday style={{ fontSize: '16px', color: '#667eea' }} />
+                  <label style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', marginRight: '8px' }}>From:</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px', 
+                      border: '1px solid #e9ecef', 
+                      borderRadius: '6px', 
+                      fontSize: '14px',
+                      color: '#2d3436',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      colorScheme: 'light'
+                    }}
+                    placeholder="dd-mm-yyyy"
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MdCalendarToday style={{ fontSize: '16px', color: '#667eea' }} />
+                  <label style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', marginRight: '8px' }}>To:</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px', 
+                      border: '1px solid #e9ecef', 
+                      borderRadius: '6px', 
+                      fontSize: '14px',
+                      color: '#2d3436',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      colorScheme: 'light'
+                    }}
+                    placeholder="dd-mm-yyyy"
+                  />
+                </div>
+              </>
+            )}
+            
+            {/* Date Range Display */}
+            {filterType === 'today' && (
+              <div style={{ 
+                padding: '8px 12px', 
+                background: '#e8f5e9', 
+                border: '1px solid #00b894', 
+                borderRadius: '6px', 
+                fontSize: '14px', 
+                color: '#2d3436', 
+                fontWeight: '600'
+              }}>
+                Showing: Today ({new Date().toLocaleDateString('en-GB')})
+              </div>
+            )}
+            
+            {filterType === 'range' && startDate && endDate && (
+              <div style={{ 
+                padding: '8px 12px', 
+                background: '#fff3e0', 
+                border: '1px solid #ffa502', 
+                borderRadius: '6px', 
+                fontSize: '14px', 
+                color: '#2d3436', 
+                fontWeight: '600'
+              }}>
+                Showing: {new Date(startDate).toLocaleDateString('en-GB')} to {new Date(endDate).toLocaleDateString('en-GB')}
+              </div>
+            )}
+          </div>
+        </div>
+        
         {loading ? <Loading /> : (
         <>
         <div className="overflow-x-auto bg-white rounded-lg shadow">
@@ -158,7 +291,7 @@ const LossGoods = () => {
               </tr>
             </thead>
             <tbody>
-              {lossItems.map((item) => {
+              {filteredLossItems.map((item) => {
                 const lossValue = calculateLossValue(item);
                 return (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef', borderLeft: '3px solid #ff4757' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
@@ -197,7 +330,12 @@ const LossGoods = () => {
                     </div>
                   </td>
                   <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>
-                    {item.lossDate && new Date(item.lossDate).toLocaleString()}
+                    {item.lossDate && (() => {
+                      const date = new Date(item.lossDate);
+                      const dateStr = date.toLocaleDateString('en-GB');
+                      const timeStr = date.toLocaleTimeString('en-US', { hour12: true });
+                      return `${dateStr}, ${timeStr}`;
+                    })()}
                   </td>
                   {userRole === 'Admin' && (
                     <td style={{ padding: '16px' }}>
@@ -228,7 +366,7 @@ const LossGoods = () => {
           </table>
         </div>
 
-        {lossItems.length === 0 && (
+        {filteredLossItems.length === 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -236,8 +374,12 @@ const LossGoods = () => {
             style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', maxWidth: '500px', margin: '60px auto' }}
           >
             <div style={{ fontSize: '48px', marginBottom: '12px', color: '#ff4757', display: 'flex', justifyContent: 'center' }}><BiError /></div>
-            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No loss records</p>
-            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Items marked as loss will appear here</p>
+            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>
+              {filterType === 'all' ? 'No loss records' : 'No loss records found for selected period'}
+            </p>
+            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>
+              {filterType === 'all' ? 'Items marked as loss will appear here' : 'Try adjusting your date filter'}
+            </p>
           </motion.div>
         )}
         </>

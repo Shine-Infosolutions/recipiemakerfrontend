@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MdRestaurant, MdDelete } from 'react-icons/md';
+import { MdRestaurant, MdDelete, MdCalendarToday } from 'react-icons/md';
 import { BiError } from 'react-icons/bi';
 import Loading from '../common/Loading';
 
@@ -10,6 +10,9 @@ const SemiFinished = () => {
   const [cancelledRecipes, setCancelledRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
+  const [filterType, setFilterType] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     fetchCancelledRecipes();
@@ -45,6 +48,31 @@ const SemiFinished = () => {
     fetchCancelledRecipes();
   };
 
+  const filterRecipes = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    return cancelledRecipes.filter(recipe => {
+      if (!recipe.createdAt) return false;
+      const recipeDate = new Date(recipe.createdAt);
+      
+      if (filterType === 'today') {
+        return recipeDate >= today;
+      } else if (filterType === 'range' && startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        
+        return recipeDate >= start && recipeDate <= end;
+      }
+      return true;
+    });
+  };
+
+  const filteredRecipes = filterRecipes();
+
   return (
     <>
       <div style={{ 
@@ -58,6 +86,110 @@ const SemiFinished = () => {
             <BiError style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Semi-Finished
           </h1>
           {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Cancelled recipes with restocked ingredients</p>}
+        </div>
+        
+        {/* Date Filter Controls */}
+        <div style={{ 
+          background: 'white', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
+          border: '1px solid #e9ecef',
+          marginBottom: '20px'
+        }}>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', marginRight: '8px' }}>Filter by:</label>
+              <select 
+                value={filterType} 
+                onChange={(e) => setFilterType(e.target.value)}
+                style={{ 
+                  padding: '8px 12px', 
+                  border: '1px solid #e9ecef', 
+                  borderRadius: '6px', 
+                  fontSize: '14px',
+                  background: 'white',
+                  color: '#2d3436'
+                }}
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="range">Date Range</option>
+              </select>
+            </div>
+            
+            {filterType === 'range' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MdCalendarToday style={{ fontSize: '16px', color: '#667eea' }} />
+                  <label style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', marginRight: '8px' }}>From:</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px', 
+                      border: '1px solid #e9ecef', 
+                      borderRadius: '6px', 
+                      fontSize: '14px',
+                      color: '#2d3436',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      colorScheme: 'light'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MdCalendarToday style={{ fontSize: '16px', color: '#667eea' }} />
+                  <label style={{ fontSize: '14px', fontWeight: '600', color: '#2d3436', marginRight: '8px' }}>To:</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px', 
+                      border: '1px solid #e9ecef', 
+                      borderRadius: '6px', 
+                      fontSize: '14px',
+                      color: '#2d3436',
+                      backgroundColor: 'white',
+                      cursor: 'pointer',
+                      colorScheme: 'light'
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            
+            {/* Date Range Display */}
+            {filterType === 'today' && (
+              <div style={{ 
+                padding: '8px 12px', 
+                background: '#e8f5e9', 
+                border: '1px solid #00b894', 
+                borderRadius: '6px', 
+                fontSize: '14px', 
+                color: '#2d3436', 
+                fontWeight: '600'
+              }}>
+                Showing: Today ({new Date().toLocaleDateString('en-GB')})
+              </div>
+            )}
+            
+            {filterType === 'range' && startDate && endDate && (
+              <div style={{ 
+                padding: '8px 12px', 
+                background: '#fff3e0', 
+                border: '1px solid #ffa502', 
+                borderRadius: '6px', 
+                fontSize: '14px', 
+                color: '#2d3436', 
+                fontWeight: '600'
+              }}>
+                Showing: {new Date(startDate).toLocaleDateString('en-GB')} to {new Date(endDate).toLocaleDateString('en-GB')}
+              </div>
+            )}
+          </div>
         </div>
         {loading ? <Loading /> : (
         <>
@@ -73,7 +205,7 @@ const SemiFinished = () => {
               </tr>
             </thead>
             <tbody>
-              {cancelledRecipes.map((recipe) => (
+              {filteredRecipes.map((recipe) => (
                 <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef', borderLeft: '3px solid #ffa502' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{recipe.title}</td>
                   <td style={{ padding: '16px' }}>
@@ -102,7 +234,12 @@ const SemiFinished = () => {
                     </span>
                   </td>
                   <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>
-                    {recipe.createdAt && new Date(recipe.createdAt).toLocaleString()}
+                    {recipe.createdAt && (() => {
+                      const date = new Date(recipe.createdAt);
+                      const dateStr = date.toLocaleDateString('en-GB');
+                      const timeStr = date.toLocaleTimeString('en-US', { hour12: true });
+                      return `${dateStr}, ${timeStr}`;
+                    })()}
                   </td>
                   <td style={{ padding: '16px' }}>
                     {userRole === 'Admin' && (
@@ -117,7 +254,7 @@ const SemiFinished = () => {
           </table>
         </div>
 
-        {cancelledRecipes.length === 0 && (
+        {filteredRecipes.length === 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -125,8 +262,12 @@ const SemiFinished = () => {
             style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', maxWidth: '500px', margin: '60px auto' }}
           >
             <div style={{ fontSize: '48px', marginBottom: '12px', color: '#667eea', display: 'flex', justifyContent: 'center' }}><BiError /></div>
-            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No cancelled recipes</p>
-            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Cancelled recipes will appear here</p>
+            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>
+              {filterType === 'all' ? 'No cancelled recipes' : 'No cancelled recipes found for selected period'}
+            </p>
+            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>
+              {filterType === 'all' ? 'Cancelled recipes will appear here' : 'Try adjusting your date filter'}
+            </p>
           </motion.div>
         )}
         </>
