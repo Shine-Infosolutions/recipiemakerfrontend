@@ -597,7 +597,7 @@ const Recipes = () => {
                       </td>
                     </tr>
                   );
-                })}}
+                })}
               </tbody>
             </table>
           </div>

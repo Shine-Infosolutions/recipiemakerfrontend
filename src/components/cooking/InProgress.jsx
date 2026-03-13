@@ -15,8 +15,8 @@ const InProgress = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [ingredientQuantities, setIngredientQuantities] = useState({});
-  const [lossType, setLossType] = useState('partial'); // 'partial' or 'complete'
-  const [lossReason, setLossReason] = useState(''); // Custom description for loss reason
+  const [lossType, setLossType] = useState(''); // Free text input for loss type
+  const [lossReason, setLossReason] = useState(''); // Free text input for loss reason
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showRemakeModal, setShowRemakeModal] = useState(false);
   const [remakeDecision, setRemakeDecision] = useState(null); // 'yes' or 'no'
@@ -108,13 +108,13 @@ const InProgress = () => {
 
   const openLossModal = (item) => {
     setSelectedItem(item);
-    setLossType('partial');
+    setLossType(''); // Reset to empty for keyboard input
     setLossReason(''); // Reset loss reason description
-    // Initialize quantities with original amounts
+    // Initialize quantities with original amounts (not 0)
     const quantities = {};
     item.ingredients.forEach(ing => {
       const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-      quantities[ingId] = ing.quantity;
+      quantities[ingId] = ing.quantity; // Show original quantity as default
     });
     setIngredientQuantities(quantities);
     setSelectedIngredients([]);
@@ -123,13 +123,20 @@ const InProgress = () => {
 
   const confirmLoss = async () => {
     try {
-      if (lossType === 'partial' && selectedIngredients.length === 0) {
-        toast.error('Please select at least one ingredient for partial loss');
+      if (!lossType.trim()) {
+        toast.error('Please enter the type of loss');
         return;
       }
 
       if (!lossReason.trim()) {
         toast.error('Please provide a reason for the loss');
+        return;
+      }
+
+      // Check if any ingredients have lost quantities > 0
+      const hasLostIngredients = Object.values(ingredientQuantities).some(qty => qty > 0);
+      if (!hasLostIngredients) {
+        toast.error('Please enter lost quantities for at least one ingredient');
         return;
       }
 
@@ -146,10 +153,9 @@ const InProgress = () => {
       
       const lossData = {
         cookedItemId: selectedItem._id,
-        lossType: lossType,
-        lossReason: lossReason,
-        lostIngredients: lossType === 'partial' ? selectedIngredients : undefined,
-        lostQuantities: lossType === 'partial' ? ingredientQuantities : undefined,
+        lossType: lossType.trim(),
+        lossReason: lossReason.trim(),
+        lostQuantities: ingredientQuantities,
         remakeWithFreshIngredients: finalDecision === 'yes'
       };
 
@@ -179,17 +185,9 @@ const InProgress = () => {
       fetchCookingItems();
       
       if (finalDecision === 'yes') {
-        if (lossType === 'complete') {
-          toast.success(`Complete recipe marked as loss and fresh ingredients automatically used to restart cooking!`);
-        } else {
-          toast.success(`Lost ingredients marked as loss and fresh replacement ingredients automatically used for cooking!`);
-        }
+        toast.success(`Loss recorded and fresh ingredients automatically used to restart cooking!`);
       } else {
-        if (lossType === 'complete') {
-          toast.success(`Complete recipe marked as loss. Cook the recipe again manually from Recipes page.`);
-        } else {
-          toast.success(`Lost ingredients marked as loss.`);
-        }
+        toast.success(`Loss recorded successfully.`);
       }
     } catch (error) {
       toast.error(`Error: ${error.message}`);
@@ -406,120 +404,88 @@ const InProgress = () => {
               Record Loss for Recipe
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Select the type of loss and reason:
+              Enter the type of loss and reason using keyboard input:
             </p>
             
-            {/* Loss Type Selection */}
-            <div className="form-control mb-6">
+            {/* Loss Type Input */}
+            <div className="form-control mb-4">
               <label className="label">
-                <span className="label-text font-semibold">Loss Type</span>
+                <span className="label-text font-semibold">Type of Loss</span>
               </label>
-              <div className="flex gap-4">
-                <label className="label cursor-pointer">
-                  <input
-                    type="radio"
-                    name="lossType"
-                    className="radio radio-error"
-                    checked={lossType === 'partial'}
-                    onChange={() => setLossType('partial')}
-                  />
-                  <span className="label-text ml-2">Partial Loss (Select specific ingredients)</span>
-                </label>
-                <label className="label cursor-pointer">
-                  <input
-                    type="radio"
-                    name="lossType"
-                    className="radio radio-error"
-                    checked={lossType === 'complete'}
-                    onChange={() => setLossType('complete')}
-                  />
-                  <span className="label-text ml-2">Complete Loss (Entire recipe)</span>
-                </label>
-              </div>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                placeholder="Enter loss type (e.g., partial damage, complete spoilage, half burnt, etc.)"
+                value={lossType}
+                onChange={(e) => setLossType(e.target.value)}
+              />
             </div>
 
-            {/* Loss Reason Description */}
+            {/* Loss Reason Input */}
             <div className="form-control mb-6">
               <label className="label">
                 <span className="label-text font-semibold">Reason for Loss</span>
               </label>
               <textarea
                 className="textarea textarea-bordered w-full"
-                placeholder="Describe the reason for loss (e.g., spoiled due to improper storage, burnt while cooking, contaminated, overcooked, accident, etc.)"
+                placeholder="Describe the reason for loss (e.g., left on stove too long, power outage, ingredient expired, etc.)"
                 value={lossReason}
                 onChange={(e) => setLossReason(e.target.value)}
                 rows={3}
               />
             </div>
 
-            {/* Ingredient Selection for Partial Loss */}
-            {lossType === 'partial' && (
-              <div className="mb-6">
-                <label className="label">
-                  <span className="label-text font-semibold">Select Lost Ingredients</span>
-                </label>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {selectedItem.ingredients?.map((ing, idx) => {
-                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                    return (
-                      <div key={idx} className="card bg-base-200 p-3">
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-error"
-                            checked={selectedIngredients.includes(ingId)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedIngredients([...selectedIngredients, ingId]);
-                              } else {
-                                setSelectedIngredients(selectedIngredients.filter(id => id !== ingId));
-                              }
-                            }}
-                          />
-                          <div className="flex-1">
-                            <span className="font-semibold text-sm">
-                              {ing.name || 'Unknown'}
-                            </span>
-                          </div>
-                          <div className="form-control">
-                            <label className="label">
-                              <span className="label-text text-xs">Lost Quantity</span>
-                            </label>
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20"
-                              value={ingredientQuantities[ingId] || ing.quantity}
-                              onChange={(e) => {
-                                setIngredientQuantities({
-                                  ...ingredientQuantities,
-                                  [ingId]: parseFloat(e.target.value) || 0
-                                });
-                              }}
-                              min="0"
-                              max={ing.quantity}
-                              step="0.1"
-                            />
-                          </div>
-                          <span className="text-sm text-gray-600 font-medium min-w-[3rem]">
-                            {ing.unit}
+            {/* Ingredient Loss Quantities */}
+            <div className="mb-6">
+              <label className="label">
+                <span className="label-text font-semibold">Enter Lost Quantities for Each Ingredient</span>
+              </label>
+              <p className="text-sm text-gray-600 mb-3">
+                Enter the quantity lost for each ingredient (enter 0 if ingredient was not lost):
+              </p>
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {selectedItem.ingredients?.map((ing, idx) => {
+                  const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
+                  return (
+                    <div key={idx} className="card bg-base-200 p-3">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <span className="font-semibold text-sm">
+                            {ing.name || 'Unknown'}
                           </span>
+                          <div className="text-xs text-gray-600 mt-1">
+                            Available: {ing.quantity} {ing.unit}
+                          </div>
                         </div>
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text text-xs">Lost Quantity</span>
+                          </label>
+                          <input
+                            type="number"
+                            className="input input-bordered input-sm w-24"
+                            value={ingredientQuantities[ingId] || ing.quantity}
+                            onChange={(e) => {
+                              setIngredientQuantities({
+                                ...ingredientQuantities,
+                                [ingId]: parseFloat(e.target.value) || 0
+                              });
+                            }}
+                            min="0"
+                            max={ing.quantity}
+                            step="0.1"
+                            placeholder={ing.quantity.toString()}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-600 font-medium min-w-[3rem]">
+                          {ing.unit}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-
-            {/* Complete Loss Summary */}
-            {lossType === 'complete' && (
-              <div className="alert alert-error mb-6">
-                <div>
-                  <h3 className="font-bold">Complete Recipe Loss</h3>
-                  <div className="text-sm">The entire recipe "{selectedItem.title}" (x{selectedItem.quantity}) will be marked as lost.</div>
-                </div>
-              </div>
-            )}
+            </div>
 
             <div className="modal-action">
               <button
@@ -554,21 +520,10 @@ const InProgress = () => {
                 <div>
                   <h4 className="font-semibold">What will happen:</h4>
                   <ul className="text-sm mt-2 space-y-1">
-                    {lossType === 'complete' ? (
-                      <>
-                        <li>• Record complete loss of "{selectedItem.title}" (x{selectedItem.quantity})</li>
-                        <li>• Ingredients remain consumed (wasted/lost)</li>
-                        <li>• The cooking item will be removed</li>
-                        <li>• You can cook the recipe again from Recipes page (will use fresh ingredients)</li>
-                      </>
-                    ) : (
-                      <>
-                        <li>• Record partial loss of selected ingredients</li>
-                        <li>• Lost ingredients remain consumed (wasted/lost)</li>
-                        <li>• Original cooking continues with remaining good ingredients</li>
-                        <li>• You can cook replacement ingredients from Recipes page if needed</li>
-                      </>
-                    )}
+                    <li>• Record loss: "{lossType}"</li>
+                    <li>• Lost ingredients remain consumed (wasted/lost)</li>
+                    <li>• The cooking item will be updated based on loss</li>
+                    <li>• You can cook replacement ingredients from Recipes page if needed</li>
                   </ul>
                 </div>
               </div>
@@ -576,27 +531,19 @@ const InProgress = () => {
               <div className="card bg-base-200 p-4">
                 <h5 className="font-semibold mb-2">Ingredients that will remain consumed (lost):</h5>
                 <div className="space-y-2">
-                  {lossType === 'complete' 
-                    ? selectedItem.ingredients?.map((ing, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span>{ing.name}</span>
-                          <span className="font-medium">{ing.quantity * selectedItem.quantity} {ing.unit}</span>
-                        </div>
-                      ))
-                    : selectedItem.ingredients?.filter(ing => {
-                        const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                        return selectedIngredients.includes(ingId);
-                      }).map((ing, idx) => {
-                        const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                        const quantity = (ingredientQuantities[ingId] || ing.quantity) * selectedItem.quantity;
-                        return (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span>{ing.name}</span>
-                            <span className="font-medium">{quantity} {ing.unit}</span>
-                          </div>
-                        );
-                      })
-                  }
+                  {selectedItem.ingredients?.filter(ing => {
+                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
+                    return (ingredientQuantities[ingId] || 0) > 0;
+                  }).map((ing, idx) => {
+                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
+                    const quantity = (ingredientQuantities[ingId] || 0) * selectedItem.quantity;
+                    return (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span>{ing.name}</span>
+                        <span className="font-medium">{quantity} {ing.unit}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -647,27 +594,19 @@ const InProgress = () => {
               <div className="card bg-base-200 p-4">
                 <h5 className="font-semibold mb-2">Fresh ingredients needed from inventory:</h5>
                 <div className="space-y-2">
-                  {lossType === 'complete' 
-                    ? selectedItem.ingredients?.map((ing, idx) => (
-                        <div key={idx} className="flex justify-between text-sm">
-                          <span>{ing.name}</span>
-                          <span className="font-medium text-primary">{ing.quantity} {ing.unit}</span>
-                        </div>
-                      ))
-                    : selectedItem.ingredients?.filter(ing => {
-                        const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                        return selectedIngredients.includes(ingId);
-                      }).map((ing, idx) => {
-                        const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                        const quantity = ingredientQuantities[ingId] || ing.quantity;
-                        return (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span>{ing.name}</span>
-                            <span className="font-medium text-primary">{quantity} {ing.unit}</span>
-                          </div>
-                        );
-                      })
-                  }
+                  {selectedItem.ingredients?.filter(ing => {
+                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
+                    return (ingredientQuantities[ingId] || 0) > 0;
+                  }).map((ing, idx) => {
+                    const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
+                    const quantity = ingredientQuantities[ingId] || 0;
+                    return (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span>{ing.name}</span>
+                        <span className="font-medium text-primary">{quantity} {ing.unit}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

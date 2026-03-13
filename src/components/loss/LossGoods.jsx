@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { MdError, MdDelete, MdRestaurantMenu } from 'react-icons/md';
+import { MdError, MdDelete, MdRestaurantMenu, MdAdd } from 'react-icons/md';
 import { BiError } from 'react-icons/bi';
 import Loading from '../common/Loading';
+import ManualLossForm from './ManualLossForm';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -12,6 +13,7 @@ const LossGoods = () => {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
+  const [showManualForm, setShowManualForm] = useState(false);
 
   useEffect(() => {
     fetchLossItems();
@@ -118,6 +120,24 @@ const LossGoods = () => {
               <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Value</p>
               <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>₹{totalLossValue.toFixed(2)}</p>
             </div>
+            <button 
+              onClick={() => setShowManualForm(true)}
+              style={{ 
+                padding: '12px 16px', 
+                background: '#ff4757', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '14px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px' 
+              }}
+            >
+              <MdAdd style={{ fontSize: '18px' }} /> Add Manual Loss
+            </button>
           </div>
         </div>
         
@@ -148,7 +168,7 @@ const LossGoods = () => {
                       <div>
                         <div>{item.recipeTitle}</div>
                         <div style={{ fontSize: '11px', color: '#636e72', marginTop: '2px' }}>
-                          {item.lossType === 'complete' ? 'Complete Loss' : 'Partial Loss'} - {item.lossReason}
+                          {item.lossType} - {item.lossReason}
                         </div>
                       </div>
                     </div>
@@ -164,16 +184,16 @@ const LossGoods = () => {
                       {item.ingredients?.map((ing, idx) => (
                         <span key={idx} style={{ 
                           fontSize: '11px', 
-                          color: ing.isLost ? '#ff4757' : '#636e72', 
-                          background: ing.isLost ? '#fff5f5' : '#f8f9fa', 
+                          color: ing.lostQuantity > 0 ? '#ff4757' : '#636e72', 
+                          background: ing.lostQuantity > 0 ? '#fff5f5' : '#f8f9fa', 
                           padding: '4px 8px', 
                           borderRadius: '6px', 
                           fontWeight: '600',
-                          border: ing.isLost ? '1px solid #ff4757' : '1px solid #e9ecef'
+                          border: ing.lostQuantity > 0 ? '1px solid #ff4757' : '1px solid #e9ecef'
                         }}>
-                          {ing.isLost && '❌ '}{ing.name || 'Unknown'}: {ing.isLost ? ing.lostQuantity : ing.quantity}{ing.unit}
+                          {ing.lostQuantity > 0 && '❌ '}{ing.name || 'Unknown'}: {ing.lostQuantity > 0 ? ing.lostQuantity : ing.quantity}{ing.unit}
                         </span>
-                      ))}
+                      ))}}
                     </div>
                   </td>
                   <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>
@@ -223,6 +243,12 @@ const LossGoods = () => {
         </>
         )}
       </div>
+      
+      <ManualLossForm 
+        isOpen={showManualForm}
+        onClose={() => setShowManualForm(false)}
+        onSuccess={fetchLossItems}
+      />
     </>
   );
 };
