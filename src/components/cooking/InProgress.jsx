@@ -40,10 +40,9 @@ const InProgress = () => {
     if (userRole === 'Admin') {
       // Admin can filter by department or see all
       if (selectedDepartment) {
-        setFilteredCookingItems(cookingItems.filter(item => {
-          const recipe = recipes.find(r => r._id === item.recipeId);
-          return recipe?.departmentId?._id === selectedDepartment;
-        }));
+        setFilteredCookingItems(cookingItems.filter(item => 
+          item.recipeId?.departmentId?._id === selectedDepartment
+        ));
       } else {
         setFilteredCookingItems(cookingItems);
       }
@@ -54,10 +53,9 @@ const InProgress = () => {
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
           if (payload.departmentId) {
-            setFilteredCookingItems(cookingItems.filter(item => {
-              const recipe = recipes.find(r => r._id === item.recipeId);
-              return recipe?.departmentId?._id === payload.departmentId;
-            }));
+            setFilteredCookingItems(cookingItems.filter(item => 
+              item.recipeId?.departmentId?._id === payload.departmentId
+            ));
           } else {
             setFilteredCookingItems(cookingItems);
           }
@@ -68,7 +66,7 @@ const InProgress = () => {
         setFilteredCookingItems(cookingItems);
       }
     }
-  }, [cookingItems, recipes, selectedDepartment, userRole]);
+  }, [cookingItems, selectedDepartment, userRole]);
 
   const fetchDepartments = async () => {
     try {
@@ -261,13 +259,12 @@ const InProgress = () => {
             </thead>
             <tbody>
               {filteredCookingItems.map((item) => {
-                const recipe = recipes.find(r => r._id === item.recipeId);
-                const totalValue = (recipe?.sellingPrice || 0) * item.quantity;
+                const totalValue = (item.recipeId?.sellingPrice || 0) * item.quantity;
                 return (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{item.title}</td>
                   <td style={{ padding: '16px' }}>
-                    {recipe?.departmentId ? (
+                    {item.recipeId?.departmentId ? (
                       <span style={{ 
                         fontSize: '11px', 
                         color: '#667eea', 
@@ -276,7 +273,7 @@ const InProgress = () => {
                         borderRadius: '12px', 
                         fontWeight: '600' 
                       }}>
-                        {recipe.departmentId.name} ({recipe.departmentId.code})
+                        {item.recipeId.departmentId.name} ({item.recipeId.departmentId.code})
                       </span>
                     ) : (
                       <span style={{ color: '#ff4757', fontSize: '12px' }}>No Department</span>
@@ -315,7 +312,7 @@ const InProgress = () => {
                   </td>
                 </tr>
                 );
-              })}
+              })}}
             </tbody>
           </table>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MdHistory, MdFileDownload } from 'react-icons/md';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
@@ -27,10 +28,26 @@ const StockLogsReport = () => {
     setLoading(false);
   };
 
+  const updateDepartments = async () => {
+    try {
+      const res = await fetch(`${API_URL}/stock-logs/update-departments`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      toast.success(`${data.message}`);
+      fetchStockLogs(); // Refresh the data
+    } catch (error) {
+      console.error('Error updating departments:', error);
+      toast.error('Failed to update departments');
+    }
+  };
+
   const exportToExcel = () => {
-    const headers = ['Item Name', 'Action', 'Quantity', 'Previous Stock', 'New Stock', 'Date'];
+    const headers = ['Item Name', 'Department', 'Action', 'Quantity', 'Previous Stock', 'New Stock', 'Date'];
     const data = stockLogs.map(log => [
       log.itemName,
+      log.departmentId?.name || log.departmentName || '-',
       log.action,
       log.quantity,
       log.previousStock,
@@ -66,28 +83,52 @@ const StockLogsReport = () => {
           </h1>
           {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Track all inventory movements</p>}
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={exportToExcel}
-          style={{
-            padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
-            background: 'linear-gradient(135deg, #00b894 0%, #00a085 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: window.innerWidth < 768 ? '12px' : '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(0,184,148,0.3)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <MdFileDownload /> Export Excel
-        </motion.button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={updateDepartments}
+            style={{
+              padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            Update Departments
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={exportToExcel}
+            style={{
+              padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
+              background: 'linear-gradient(135deg, #00b894 0%, #00a085 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: window.innerWidth < 768 ? '12px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,184,148,0.3)',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <MdFileDownload /> Export Excel
+          </motion.button>
+        </div>
       </div>
 
       {loading ? <Loading /> : (
@@ -97,6 +138,7 @@ const StockLogsReport = () => {
               <thead style={{ backgroundColor: '#f1f3f5' }}>
                 <tr>
                   <th style={{ color: '#2d3436' }}>Item Name</th>
+                  <th style={{ color: '#2d3436' }}>Department</th>
                   <th style={{ color: '#2d3436' }}>Action</th>
                   <th style={{ color: '#2d3436' }}>Quantity</th>
                   <th style={{ color: '#2d3436' }}>Previous Stock</th>
@@ -108,6 +150,23 @@ const StockLogsReport = () => {
                 {stockLogs.map(log => (
                   <tr key={log._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <td className="font-semibold" style={{ color: '#2d3436' }}>{log.itemName}</td>
+                    <td style={{ padding: '12px' }}>
+                      {log.departmentId?.name || log.departmentName ? (
+                        <span style={{ 
+                          fontSize: '12px', 
+                          color: '#667eea', 
+                          background: '#f0f2ff', 
+                          padding: '4px 8px', 
+                          borderRadius: '12px', 
+                          fontWeight: '600',
+                          border: '1px solid #667eea'
+                        }}>
+                          {log.departmentId?.name || log.departmentName}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#636e72' }}>-</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`badge ${log.action === 'Added' ? 'badge-success' : log.action === 'Used' ? 'badge-error' : 'badge-warning'}`}>
                         {log.action}
