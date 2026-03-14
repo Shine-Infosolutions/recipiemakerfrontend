@@ -3,24 +3,60 @@ import { motion } from 'framer-motion';
 import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney, MdHistory, MdCloudUpload, MdError } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
-import { FaFire, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { FaFire, FaChevronDown, FaChevronRight, FaBuilding } from 'react-icons/fa';
 
 const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
   const [showReportsSubmenu, setShowReportsSubmenu] = useState(false);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
-    { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
-    { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
-    { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
-    { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
-    { id: 'lossgoods', label: 'Loss Goods', Icon: MdError, color: '#ff4757' },
-    { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
-    { id: 'bulk-data', label: 'Bulk Data', Icon: MdCloudUpload, color: '#667eea' },
-    { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
-    ...(userRole === 'Admin' ? [{ id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' }] : []),
-    { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
-  ];
+  const getNavItemsForRole = (role) => {
+    const baseItems = [
+      { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
+    ];
+
+    if (role === 'Admin') {
+      return [
+        ...baseItems,
+        { id: 'departments', label: 'Departments', Icon: FaBuilding, color: '#667eea' },
+        { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+        { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
+        { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
+        { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
+        { id: 'lossgoods', label: 'Loss Goods', Icon: MdError, color: '#ff4757' },
+        { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+        { id: 'bulk-data', label: 'Bulk Data', Icon: MdCloudUpload, color: '#667eea' },
+        { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
+        { id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' },
+        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
+      ];
+    } else if (role === 'Chef') {
+      return [
+        ...baseItems,
+        { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+        { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
+        { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
+        { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
+        { id: 'lossgoods', label: 'Loss Goods', Icon: MdError, color: '#ff4757' },
+        { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
+      ];
+    } else if (role === 'Staff' || role === 'Waiter') {
+      return [
+        ...baseItems,
+        { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+        { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
+        { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
+      ];
+    } else {
+      // Default fallback
+      return [
+        ...baseItems,
+        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
+      ];
+    }
+  };
+
+  const navItems = getNavItemsForRole(userRole);
 
   return (
     <div className="drawer-side z-50">

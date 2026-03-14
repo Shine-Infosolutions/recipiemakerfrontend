@@ -111,6 +111,7 @@ const UserList = ({ onEdit, onAdd }) => {
               <th style={{ color: '#2d3436' }}>User</th>
               <th style={{ color: '#2d3436' }}>Email</th>
               <th style={{ color: '#2d3436' }}>Role</th>
+              <th style={{ color: '#2d3436' }}>Department</th>
               <th style={{ color: '#2d3436' }}>Status</th>
               <th style={{ color: '#2d3436', textAlign: 'center' }}>Actions</th>
             </tr>
@@ -147,9 +148,32 @@ const UserList = ({ onEdit, onAdd }) => {
                 </td>
                 <td style={{ color: '#2d3436' }}>{user.email}</td>
                 <td>
-                  <span className={`badge ${user.role === 'Admin' ? 'badge-primary' : 'badge-success'} badge-sm`}>
-                    {user.role || 'User'}
+                  <span className={`badge badge-sm ${
+                    user.role === 'Admin' ? 'badge-primary' : 
+                    user.role === 'Chef' ? 'badge-accent' :
+                    user.role === 'Staff' ? 'badge-success' : 
+                    user.role === 'Waiter' ? 'badge-warning' : 'badge-ghost'
+                  }`}>
+                    {user.role || 'Staff'}
                   </span>
+                </td>
+                <td>
+                  {user.role === 'Admin' ? (
+                    <span style={{ color: '#636e72', fontSize: '12px', fontStyle: 'italic' }}>N/A</span>
+                  ) : user.departmentId ? (
+                    <span style={{ 
+                      fontSize: '11px', 
+                      color: '#667eea', 
+                      background: '#e8ecff', 
+                      padding: '4px 8px', 
+                      borderRadius: '12px', 
+                      fontWeight: '600' 
+                    }}>
+                      {user.departmentId.name} ({user.departmentId.code})
+                    </span>
+                  ) : (
+                    <span style={{ color: '#ff4757', fontSize: '12px' }}>No Department</span>
+                  )}
                 </td>
                 <td>
                   <div className="form-control">

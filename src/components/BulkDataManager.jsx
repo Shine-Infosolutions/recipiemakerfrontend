@@ -146,6 +146,21 @@ const BulkDataManager = () => {
             </motion.button>
           ))}
         </div>
+        
+        {/* Department Code Info */}
+        {(activeType === 'inventory' || activeType === 'recipes') && (
+          <div style={{
+            background: '#fff3e0',
+            border: '1px solid #ffa502',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '20px',
+            fontSize: '14px',
+            color: '#2d3436'
+          }}>
+            <strong>Note:</strong> The <code>departmentCode</code> field is required. Make sure to create departments first and use their exact codes in this template.
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '20px' }}>

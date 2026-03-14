@@ -10,9 +10,12 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 
 const LossGoods = () => {
   const [lossItems, setLossItems] = useState([]);
+  const [filteredLossItems, setFilteredLossItems] = useState([]);
   const [recipes, setRecipes] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
+  const [userRole, setUserRole] = useState('');
   const [showManualForm, setShowManualForm] = useState(false);
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
@@ -21,7 +24,47 @@ const LossGoods = () => {
   useEffect(() => {
     fetchLossItems();
     fetchRecipes();
+    fetchDepartments();
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserRole(payload.role);
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    let filtered = lossItems;
+    
+    // Apply department filtering
+    if (userRole === 'Admin') {
+      if (selectedDepartment) {
+        filtered = filtered.filter(item => 
+          item.recipeId?.departmentId?._id === selectedDepartment
+        );
+      }
+    }
+    // Non-admin users already get filtered data from backend
+    
+    setFilteredLossItems(filtered);
+  }, [lossItems, selectedDepartment, userRole]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch(`${API_URL}/departments`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDepartments(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
 
   const fetchRecipes = async () => {
     try {
@@ -91,7 +134,7 @@ const LossGoods = () => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    return lossItems.filter(item => {
+    return filteredLossItems.filter(item => {
       if (!item.lossDate) return false;
       const itemDate = new Date(item.lossDate);
       
@@ -110,8 +153,8 @@ const LossGoods = () => {
     });
   };
 
-  const filteredLossItems = filterLossItems();
-  const totalLossValue = filteredLossItems.reduce((sum, item) => sum + calculateLossValue(item), 0);
+  const finalFilteredItems = filterLossItems();
+  const totalLossValue = finalFilteredItems.reduce((sum, item) => sum + calculateLossValue(item), 0);
 
   return (
     <>
@@ -121,51 +164,74 @@ const LossGoods = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
-        <div style={{ marginBottom: '20px' }}>
-          <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <MdError style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#ff4757', flexShrink: 0 }} /> Loss Goods
-          </h1>
-          {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Items marked as loss during cooking</p>}
-          
-          {/* Loss Summary */}
-          <div style={{ 
-            background: 'white', 
-            padding: '16px', 
-            borderRadius: '12px', 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
-            border: '1px solid #e9ecef',
-            marginTop: '16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div>
-              <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Items</p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>{filteredLossItems.length}</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Value</p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>₹{totalLossValue.toFixed(2)}</p>
-            </div>
-            <button 
-              onClick={() => setShowManualForm(true)}
-              style={{ 
-                padding: '12px 16px', 
-                background: '#ff4757', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '8px', 
-                cursor: 'pointer', 
-                fontWeight: '600', 
-                fontSize: '14px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px' 
-              }}
-            >
-              <MdAdd style={{ fontSize: '18px' }} /> Add Manual Loss
-            </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MdError style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#ff4757', flexShrink: 0 }} /> Loss Goods
+            </h1>
+            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Items marked as loss during cooking</p>}
           </div>
+          {userRole === 'Admin' && (
+            <select
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                fontSize: '14px',
+                minWidth: '150px',
+                color: '#2d3436'
+              }}
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+            >
+              <option value="">All Departments ({departments.length})</option>
+              {departments.map((dept) => (
+                <option key={dept._id} value={dept._id}>
+                  {dept.name} ({dept.code})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        
+        {/* Loss Summary */}
+        <div style={{ 
+          background: 'white', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
+          border: '1px solid #e9ecef',
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Items</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>{finalFilteredItems.length}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Value</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>₹{totalLossValue.toFixed(2)}</p>
+          </div>
+          <button 
+            onClick={() => setShowManualForm(true)}
+            style={{ 
+              padding: '12px 16px', 
+              background: '#ff4757', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '8px', 
+              cursor: 'pointer', 
+              fontWeight: '600', 
+              fontSize: '14px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px' 
+            }}
+          >
+            <MdAdd style={{ fontSize: '18px' }} /> Add Manual Loss
+          </button>
         </div>
         
         {/* Date Filter Controls */}
@@ -281,6 +347,7 @@ const LossGoods = () => {
             <thead style={{ backgroundColor: '#f1f3f5' }}>
               <tr>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Recipe Name</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Department</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Quantity</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Loss Value</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
@@ -305,6 +372,23 @@ const LossGoods = () => {
                         </div>
                       </div>
                     </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    {item.recipeId?.departmentId ? (
+                      <span style={{ 
+                        fontSize: '12px', 
+                        color: '#667eea', 
+                        background: '#f0f2ff', 
+                        padding: '4px 8px', 
+                        borderRadius: '12px', 
+                        fontWeight: '600',
+                        border: '1px solid #667eea'
+                      }}>
+                        {item.recipeId.departmentId.name}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: '#636e72' }}>-</span>
+                    )}
                   </td>
                   <td style={{ padding: '16px' }}>
                     <span style={{ fontSize: '11px', color: '#ff4757', background: '#fff5f5', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>x{item.originalQuantity}</span>
@@ -366,7 +450,7 @@ const LossGoods = () => {
           </table>
         </div>
 
-        {filteredLossItems.length === 0 && (
+        {finalFilteredItems.length === 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

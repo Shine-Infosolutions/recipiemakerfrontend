@@ -9,22 +9,63 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 
 const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
+  const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [cookingRecipe, setCookingRecipe] = useState(null);
   const [cookQuantities, setCookQuantities] = useState({});
   const [showCookModal, setShowCookModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
-  const [formData, setFormData] = useState({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [] });
+  const [formData, setFormData] = useState({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [] });
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState({});
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'Staff');
 
   useEffect(() => {
     fetchRecipes();
     fetchInventory();
+    fetchDepartments();
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserRole(payload.role);
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (userRole === 'Admin') {
+      // Admin can filter by department or see all
+      if (selectedDepartment) {
+        setFilteredRecipes(recipes.filter(recipe => recipe.departmentId?._id === selectedDepartment));
+      } else {
+        setFilteredRecipes(recipes);
+      }
+    } else {
+      // Non-admin users see only their department's recipes
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.departmentId) {
+            setFilteredRecipes(recipes.filter(recipe => recipe.departmentId?._id === payload.departmentId));
+          } else {
+            setFilteredRecipes(recipes);
+          }
+        } catch (error) {
+          setFilteredRecipes(recipes);
+        }
+      } else {
+        setFilteredRecipes(recipes);
+      }
+    }
+  }, [recipes, selectedDepartment, userRole]);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -35,7 +76,7 @@ const Recipes = () => {
   }, []);
 
   // Show all recipes as templates for cooking
-  const allRecipes = recipes.map(r => ({
+  const allRecipes = filteredRecipes.map(r => ({
     _id: r._id,
     title: r.title,
     ingredients: r.ingredients,
@@ -58,6 +99,19 @@ const Recipes = () => {
     });
     const data = await res.json();
     setInventory(data);
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch(`${API_URL}/departments`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      console.log('Fetched departments:', data);
+      setDepartments(data.filter(dept => dept.isActive));
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
   };
 
   const addIngredient = () => {
@@ -85,7 +139,7 @@ const Recipes = () => {
   };
 
   const createRecipe = async () => {
-    if (formData.title && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity)) {
+    if (formData.title && formData.departmentId && formData.ingredients.length > 0 && formData.ingredients.every(ing => ing.inventoryId && ing.quantity)) {
       const url = editingId ? `${API_URL}/recipes/${editingId}` : `${API_URL}/recipes`;
       const method = editingId ? 'PUT' : 'POST';
       
@@ -97,6 +151,7 @@ const Recipes = () => {
         },
         body: JSON.stringify({
           title: formData.title,
+          departmentId: formData.departmentId,
           sellingPrice: parseFloat(formData.sellingPrice) || 0,
           ingredients: formData.ingredients.map(ing => ({
             inventoryId: ing.inventoryId,
@@ -105,12 +160,14 @@ const Recipes = () => {
           }))
         })
       });
-      setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+      setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
       setEditingId(null);
       setShowForm(false);
       fetchRecipes();
       fetchInventory();
       toast.success(editingId ? 'Recipe updated successfully!' : 'Recipe created successfully!');
+    } else {
+      toast.error('Please fill in all required fields including department');
     }
   };
 
@@ -200,6 +257,7 @@ const Recipes = () => {
   const editRecipe = (recipe) => {
     setFormData({
       title: recipe.title,
+      departmentId: recipe.departmentId?._id || '',
       instructions: recipe.instructions || '',
       cookTime: recipe.cookTime || '',
       servings: recipe.servings || '',
@@ -222,35 +280,58 @@ const Recipes = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <MdRestaurant style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Recipes
             </h1>
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Create and manage your recipes</p>}
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setShowForm(!showForm);
-              setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
-            }}
-            style={{
-              padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: window.innerWidth < 768 ? '12px' : '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            + Add Recipe
-          </motion.button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {userRole === 'Admin' && (
+              <select
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  minWidth: '150px',
+                  color: '#2d3436'
+                }}
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+              >
+                <option value="">All Departments ({departments.length})</option>
+                {departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name} ({dept.code})
+                  </option>
+                ))}
+              </select>
+            )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setShowForm(!showForm);
+                setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+              }}
+              style={{
+                padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: window.innerWidth < 768 ? '12px' : '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              + Add Recipe
+            </motion.button>
+          </div>
         </div>
         {loading ? <Loading /> : (
         <>
@@ -262,7 +343,7 @@ const Recipes = () => {
               </h3>
               <div className="form-control mb-6">
                 <label className="label">
-                  <span className="label-text">Recipe Name</span>
+                  <span className="label-text">Recipe Name *</span>
                 </label>
                 <input
                   type="text"
@@ -271,6 +352,24 @@ const Recipes = () => {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
+              </div>
+              
+              <div className="form-control mb-6">
+                <label className="label">
+                  <span className="label-text">Department *</span>
+                </label>
+                <select
+                  className="select select-bordered"
+                  value={formData.departmentId}
+                  onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept._id} value={dept._id}>
+                      {dept.name} ({dept.code})
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-control mb-6">
@@ -356,7 +455,7 @@ const Recipes = () => {
                   onClick={() => {
                     setShowForm(false);
                     setEditingId(null);
-                    setFormData({ title: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+                    setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
                   }}
                 >
                   Cancel
@@ -365,7 +464,7 @@ const Recipes = () => {
                   type="button"
                   className="btn btn-primary"
                   onClick={createRecipe}
-                  disabled={!formData.title || formData.ingredients.length === 0 || !formData.ingredients.every(ing => ing.inventoryId && ing.quantity)}
+                  disabled={!formData.title || !formData.departmentId || formData.ingredients.length === 0 || !formData.ingredients.every(ing => ing.inventoryId && ing.quantity)}
                 >
                   {editingId ? 'Update Recipe' : 'Save Recipe'}
                 </button>
@@ -434,6 +533,7 @@ const Recipes = () => {
               <thead>
                 <tr style={{ background: '#f1f3f5' }}>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Recipe Name</th>
+                  <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Department</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Ingredients</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Price</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>Status</th>
@@ -456,6 +556,22 @@ const Recipes = () => {
                           <MdRestaurantMenu style={{ fontSize: '18px', color: '#667eea' }} />
                           {recipe.title}
                         </div>
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        {originalRecipe?.departmentId ? (
+                          <span style={{ 
+                            fontSize: '11px', 
+                            color: '#667eea', 
+                            background: '#e8ecff', 
+                            padding: '4px 8px', 
+                            borderRadius: '12px', 
+                            fontWeight: '600' 
+                          }}>
+                            {originalRecipe.departmentId.name} ({originalRecipe.departmentId.code})
+                          </span>
+                        ) : (
+                          <span style={{ color: '#ff4757', fontSize: '12px' }}>No Department</span>
+                        )}
                       </td>
                       <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -611,8 +727,12 @@ const Recipes = () => {
             style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', maxWidth: '500px', margin: '60px auto' }}
           >
             <div style={{ fontSize: '48px', marginBottom: '12px', color: '#667eea', display: 'flex', justifyContent: 'center' }}><MdRestaurant /></div>
-            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No recipes yet</p>
-            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Click "Add Recipe" to create your first recipe!</p>
+            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>
+              {selectedDepartment ? 'No recipes found for selected department' : 'No recipes yet'}
+            </p>
+            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>
+              {selectedDepartment ? 'Try selecting a different department or add new recipes.' : 'Click "Add Recipe" to create your first recipe!'}
+            </p>
           </motion.div>
         )}
         </>

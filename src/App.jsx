@@ -10,6 +10,7 @@ import InProgress from './components/cooking/InProgress';
 import Cooking from './components/cooking/Cooking';
 import SemiFinished from './components/semifinished/SemiFinished';
 import LossGoods from './components/loss/LossGoods';
+import Departments from './components/departments/Departments';
 import Users from './components/users/Users';
 import ChangePassword from './components/ChangePassword';
 import InventoryReport from './components/reports/InventoryReport';
@@ -25,7 +26,7 @@ const App = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'User');
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'Staff');
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -54,12 +55,12 @@ const App = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     setIsLoggedIn(false);
-    setUserRole('User');
+    setUserRole('Staff');
   };
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
-    setUserRole(localStorage.getItem('userRole') || 'User');
+    setUserRole(localStorage.getItem('userRole') || 'Staff');
   };
 
   if (!isLoggedIn) {
@@ -106,6 +107,7 @@ const App = () => {
           {activeTab === 'cooking' && <Cooking />}
           {activeTab === 'semifinished' && <SemiFinished />}
           {activeTab === 'lossgoods' && <LossGoods />}
+          {activeTab === 'departments' && <Departments />}
           {activeTab === 'users' && userRole === 'Admin' && <Users />}
           {activeTab === 'inventory-report' && userRole === 'Admin' && <InventoryReport />}
           {activeTab === 'recipe-report' && userRole === 'Admin' && <RecipeReport />}

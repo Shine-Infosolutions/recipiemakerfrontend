@@ -9,18 +9,80 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 
 const InProgress = () => {
   const [cookingItems, setCookingItems] = useState([]);
+  const [filteredCookingItems, setFilteredCookingItems] = useState([]);
   const [recipes, setRecipes] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [loading, setLoading] = useState(true);
   const [showRestockModal, setShowRestockModal] = useState(false);
   const [showLossModal, setShowLossModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [ingredientQuantities, setIngredientQuantities] = useState({});
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     fetchCookingItems();
     fetchRecipes();
+    fetchDepartments();
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserRole(payload.role);
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (userRole === 'Admin') {
+      // Admin can filter by department or see all
+      if (selectedDepartment) {
+        setFilteredCookingItems(cookingItems.filter(item => {
+          const recipe = recipes.find(r => r._id === item.recipeId);
+          return recipe?.departmentId?._id === selectedDepartment;
+        }));
+      } else {
+        setFilteredCookingItems(cookingItems);
+      }
+    } else {
+      // Non-admin users see only their department's cooking items
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.departmentId) {
+            setFilteredCookingItems(cookingItems.filter(item => {
+              const recipe = recipes.find(r => r._id === item.recipeId);
+              return recipe?.departmentId?._id === payload.departmentId;
+            }));
+          } else {
+            setFilteredCookingItems(cookingItems);
+          }
+        } catch (error) {
+          setFilteredCookingItems(cookingItems);
+        }
+      } else {
+        setFilteredCookingItems(cookingItems);
+      }
+    }
+  }, [cookingItems, recipes, selectedDepartment, userRole]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch(`${API_URL}/departments`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDepartments(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
 
   const fetchRecipes = async () => {
     try {
@@ -153,11 +215,34 @@ const InProgress = () => {
         background: '#f8f9fa',
         minHeight: window.innerWidth < 768 ? 'calc(100vh - 64px)' : '100vh'
       }}>
-        <div style={{ marginBottom: '20px' }}>
-          <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Cooking
-          </h1>
-          {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Items currently being cooked</p>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h1 style={{ fontSize: window.innerWidth < 768 ? '18px' : '24px', fontWeight: '700', color: '#2d3436', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <GiCookingPot style={{ fontSize: window.innerWidth < 768 ? '20px' : '28px', color: '#667eea', flexShrink: 0 }} /> Cooking
+            </h1>
+            {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Items currently being cooked</p>}
+          </div>
+          {userRole === 'Admin' && (
+            <select
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                fontSize: '14px',
+                minWidth: '150px',
+                color: '#2d3436'
+              }}
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+            >
+              <option value="">All Departments ({departments.length})</option>
+              {departments.map((dept) => (
+                <option key={dept._id} value={dept._id}>
+                  {dept.name} ({dept.code})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         {loading ? <Loading /> : (
         <>
@@ -166,6 +251,7 @@ const InProgress = () => {
             <thead style={{ backgroundColor: '#f1f3f5' }}>
               <tr>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Recipe Name</th>
+                <th style={{ color: '#2d3436', padding: '16px' }}>Department</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Quantity</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Total Value</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
@@ -174,12 +260,28 @@ const InProgress = () => {
               </tr>
             </thead>
             <tbody>
-              {cookingItems.map((item) => {
+              {filteredCookingItems.map((item) => {
                 const recipe = recipes.find(r => r._id === item.recipeId);
                 const totalValue = (recipe?.sellingPrice || 0) * item.quantity;
                 return (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{item.title}</td>
+                  <td style={{ padding: '16px' }}>
+                    {recipe?.departmentId ? (
+                      <span style={{ 
+                        fontSize: '11px', 
+                        color: '#667eea', 
+                        background: '#e8ecff', 
+                        padding: '4px 8px', 
+                        borderRadius: '12px', 
+                        fontWeight: '600' 
+                      }}>
+                        {recipe.departmentId.name} ({recipe.departmentId.code})
+                      </span>
+                    ) : (
+                      <span style={{ color: '#ff4757', fontSize: '12px' }}>No Department</span>
+                    )}
+                  </td>
                   <td style={{ padding: '16px' }}>
                     <span style={{ fontSize: '11px', color: '#ffa502', background: '#fff3e0', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>x{item.quantity}</span>
                   </td>
@@ -218,7 +320,7 @@ const InProgress = () => {
           </table>
         </div>
 
-        {cookingItems.length === 0 && (
+        {filteredCookingItems.length === 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -226,8 +328,12 @@ const InProgress = () => {
             style={{ textAlign: 'center', padding: '40px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', maxWidth: '500px', margin: '60px auto' }}
           >
             <div style={{ fontSize: '48px', marginBottom: '12px', color: '#667eea', display: 'flex', justifyContent: 'center' }}><GiCookingPot /></div>
-            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>No items cooking</p>
-            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>Go to Recipes page to start cooking!</p>
+            <p style={{ fontSize: '18px', color: '#2d3436', fontWeight: '600', margin: '0 0 8px 0' }}>
+              {selectedDepartment ? 'No cooking items found for selected department' : 'No items cooking'}
+            </p>
+            <p style={{ fontSize: '14px', color: '#636e72', margin: 0 }}>
+              {selectedDepartment ? 'Try selecting a different department or start cooking recipes.' : 'Go to Recipes page to start cooking!'}
+            </p>
           </motion.div>
         )}
         </>
