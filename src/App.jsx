@@ -18,7 +18,9 @@ import RecipeReport from './components/reports/RecipeReport';
 import ProductionReport from './components/reports/ProductionReport';
 import RevenueReport from './components/reports/RevenueReport';
 import StockLogsReport from './components/reports/StockLogsReport';
+import TransferReport from './components/reports/TransferReport';
 import BulkDataManager from './components/BulkDataManager';
+import Analytics from './components/analytics/Analytics';
 import { apiRequest, API_URL } from './utils/api';
 
 const App = () => {
@@ -100,7 +102,7 @@ const App = () => {
 
         {/* Page content */}
         <div className="flex-1 overflow-auto" style={{ backgroundColor: 'white' }}>
-          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} />}
           {activeTab === 'inventory' && <Inventory />}
           {activeTab === 'recipes' && <Recipes />}
           {activeTab === 'inprogress' && <InProgress />}
@@ -114,7 +116,9 @@ const App = () => {
           {activeTab === 'production-report' && userRole === 'Admin' && <ProductionReport />}
           {activeTab === 'revenue-report' && userRole === 'Admin' && <RevenueReport />}
           {activeTab === 'stock-logs-report' && userRole === 'Admin' && <StockLogsReport />}
+          {activeTab === 'transfer-report' && userRole === 'Admin' && <TransferReport />}
           {activeTab === 'bulk-data' && userRole === 'Admin' && <BulkDataManager />}
+          {activeTab === 'analytics' && <Analytics />}
           {activeTab === 'settings' && <ChangePassword />}
         </div>
       </div>

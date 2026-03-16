@@ -6,7 +6,7 @@ import Loading from '../common/Loading';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
-const Dashboard = () => {
+const Dashboard = ({ setActiveTab }) => {
   const [inventory, setInventory] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [cookedItems, setCookedItems] = useState([]);
@@ -146,7 +146,8 @@ const Dashboard = () => {
 
   // Statistics - remove status-based filtering since recipes are just templates
   const totalInventoryValue = Array.isArray(inventory) ? inventory.reduce((sum, item) => sum + (item.price * item.quantity || 0), 0) : 0;
-  const lowStockItems = Array.isArray(inventory) ? inventory.filter(item => item.quantity < 10).length : 0;
+  const lowStockItems = Array.isArray(inventory) ? inventory.filter(item => item.quantity > 0 && item.quantity <= (item.minStock || 10)).length : 0;
+  const outOfStockItems = Array.isArray(inventory) ? inventory.filter(item => item.quantity === 0).length : 0;
   const categories = Array.isArray(inventory) ? [...new Set(inventory.map(item => item.category))] : [];
 
   const StatCard = ({ icon, title, value, color, subtitle, index = 0 }) => (
@@ -330,17 +331,61 @@ const Dashboard = () => {
           style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}
         >
           <StatCard icon={<MdInventory />} title="Total Items" value={Array.isArray(inventory) ? inventory.length : 0} color="#667eea" subtitle={`Worth ₹${totalInventoryValue.toFixed(2)}`} index={0} />
-          <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ff4757" subtitle="Items below 10 units" index={1} />
-          <StatCard icon={<MdRestaurantMenu />} title="Total Recipes" value={Array.isArray(recipes) ? recipes.length : 0} color="#667eea" subtitle="Available templates" index={2} />
-          <StatCard icon={<MdRestaurant />} title="Finished Goods" value={Array.isArray(cookedItems) ? cookedItems.filter(item => item.status === 'finished').length : 0} color="#00b894" subtitle="Completed items" index={3} />
-          <StatCard icon={<GiCookingPot />} title="Semi-Finished" value={Array.isArray(cookedItems) ? cookedItems.filter(item => item.status === 'semi-finished').length : 0} color="#ffa502" subtitle="Partial items" index={4} />
-          <StatCard icon={<MdError />} title="Loss Items" value={Array.isArray(lossItems) ? lossItems.length : 0} color="#ff4757" subtitle="Lost during cooking" index={5} />
-          <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From cooking" index={6} />
-          <StatCard icon={<MdTrendingUp />} title="Ingredients Restocked" value={ingredientsRestocked} color="#00b894" subtitle="From cancelled" index={7} />
+          <StatCard icon={<MdTrendingDown />} title="Low Stock" value={lowStockItems} color="#ffa502" subtitle="Items need restocking" index={1} />
+          <StatCard icon={<MdError />} title="Out of Stock" value={outOfStockItems} color="#ff4757" subtitle="Items completely depleted" index={2} />
+          <StatCard icon={<MdRestaurantMenu />} title="Total Recipes" value={Array.isArray(recipes) ? recipes.length : 0} color="#667eea" subtitle="Available templates" index={3} />
+          <StatCard icon={<MdRestaurant />} title="Finished Goods" value={Array.isArray(cookedItems) ? cookedItems.filter(item => item.status === 'finished').length : 0} color="#00b894" subtitle="Completed items" index={4} />
+          <StatCard icon={<GiCookingPot />} title="Semi-Finished" value={Array.isArray(cookedItems) ? cookedItems.filter(item => item.status === 'semi-finished').length : 0} color="#ffa502" subtitle="Partial items" index={5} />
+          <StatCard icon={<MdError />} title="Loss Items" value={Array.isArray(lossItems) ? lossItems.length : 0} color="#ff4757" subtitle="Lost during cooking" index={6} />
+          <StatCard icon={<MdTrendingDown />} title="Ingredients Used" value={ingredientsUsed} color="#e74c3c" subtitle="From cooking" index={7} />
         </motion.div>
 
         {/* Two Column Layout */}
         <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+          {/* Low Stock & Out of Stock Items */}
+          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MdError style={{ color: '#ff4757' }} /> Stock Alerts
+            </h3>
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {/* Out of Stock Items */}
+              {Array.isArray(inventory) && inventory.filter(item => item.quantity === 0).map(item => (
+                <div key={`out-${item._id}`} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff5f5' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>{item.name}</p>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>{item.departmentId?.name || 'No Department'}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="badge badge-error badge-sm" style={{ fontSize: '10px' }}>OUT OF STOCK</span>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>0 {item.unit}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Low Stock Items */}
+              {Array.isArray(inventory) && inventory.filter(item => item.quantity > 0 && item.quantity <= (item.minStock || 10)).map(item => (
+                <div key={`low-${item._id}`} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffbf0' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>{item.name}</p>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>{item.departmentId?.name || 'No Department'}</p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="badge badge-warning badge-sm" style={{ fontSize: '10px' }}>LOW STOCK</span>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#636e72' }}>{item.quantity} {item.unit}</p>
+                  </div>
+                </div>
+              ))}
+              
+              {Array.isArray(inventory) && inventory.filter(item => item.quantity === 0 || (item.quantity > 0 && item.quantity <= (item.minStock || 10))).length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '12px', color: '#00b894' }}>✅</div>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#2d3436' }}>All items are well stocked!</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#636e72' }}>No low stock or out of stock items</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Ingredients Used Section */}
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -360,30 +405,10 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-
-          {/* Ingredients Restocked Section */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MdTrendingUp style={{ color: '#00b894' }} /> Ingredients Restocked ({restockedIngredients.length})
-            </h3>
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {restockedIngredients.map((ing, idx) => (
-                <div key={idx} style={{ padding: '10px', borderBottom: '1px solid #f1f3f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#2d3436' }}>{ing.name}</p>
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#00b894' }}>
-                    +{ing.quantity} {ing.unit}
-                  </p>
-                </div>
-              ))}
-              {restockedIngredients.length === 0 && (
-                <p style={{ textAlign: 'center', color: '#95a5a6', fontSize: '13px', padding: '20px' }}>No ingredients restocked</p>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '20px' }}>
+        {/* Second Two Column Layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
           {/* Inventory Section */}
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600', color: '#2d3436', display: 'flex', alignItems: 'center', gap: '8px' }}>

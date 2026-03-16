@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney, MdHistory, MdCloudUpload, MdError } from 'react-icons/md';
+import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAssessment, MdAttachMoney, MdHistory, MdCloudUpload, MdError, MdBarChart, MdSwapHoriz } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
 import { FaFire, FaChevronDown, FaChevronRight, FaBuilding } from 'react-icons/fa';
@@ -11,6 +11,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
   const getNavItemsForRole = (role) => {
     const baseItems = [
       { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
+      { id: 'analytics', label: 'Analytics', Icon: MdBarChart, color: '#667eea' },
     ];
 
     if (role === 'Admin') {
@@ -205,6 +206,25 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
                         >
                           <MdHistory className="text-lg" />
                           <span className="font-medium">Stock Logs</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          onClick={() => {
+                            setActiveTab('transfer-report');
+                            if (window.innerWidth < 1024) {
+                              document.getElementById('my-drawer').checked = false;
+                            }
+                          }}
+                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-300 text-sm ${
+                            activeTab === 'transfer-report'
+                              ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30'
+                              : 'text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                          }`}
+                          style={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <MdSwapHoriz className="text-lg" />
+                          <span className="font-medium">Transfer Report</span>
                         </a>
                       </li>
                     </ul>
