@@ -11,12 +11,12 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
   const getNavItemsForRole = (role) => {
     const baseItems = [
       { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
-      { id: 'analytics', label: 'Analytics', Icon: MdBarChart, color: '#667eea' },
     ];
 
     if (role === 'Admin') {
       return [
         ...baseItems,
+        { id: 'analytics', label: 'Analytics', Icon: MdBarChart, color: '#667eea' },
         { id: 'departments', label: 'Departments', Icon: FaBuilding, color: '#667eea' },
         { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
         { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },

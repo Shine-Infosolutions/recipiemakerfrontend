@@ -118,7 +118,7 @@ const App = () => {
           {activeTab === 'stock-logs-report' && userRole === 'Admin' && <StockLogsReport />}
           {activeTab === 'transfer-report' && userRole === 'Admin' && <TransferReport />}
           {activeTab === 'bulk-data' && userRole === 'Admin' && <BulkDataManager />}
-          {activeTab === 'analytics' && <Analytics />}
+          {activeTab === 'analytics' && userRole === 'Admin' && <Analytics />}
           {activeTab === 'settings' && <ChangePassword />}
         </div>
       </div>
