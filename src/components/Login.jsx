@@ -7,19 +7,29 @@ const Login = ({ onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
+      console.log('Attempting login with:', { email: formData.email });
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      
+      console.log('Response status:', res.status);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      console.log('Response data:', data);
+      
+      if (!res.ok) {
+        throw new Error(data.error || data.details || `Server error: ${res.status}`);
+      }
+      
       localStorage.setItem('token', data.token);
       localStorage.setItem('userRole', data.user.role || 'User');
       onSuccess();
     } catch (err) {
-      setError(err.message || 'Login failed');
+      console.error('Login error:', err);
+      setError(err.message || 'Login failed - please check your connection');
     }
   };
 

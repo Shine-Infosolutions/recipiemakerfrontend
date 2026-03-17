@@ -4,6 +4,7 @@ import Register from './components/Register';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import Loading from './components/common/Loading';
+import { DepartmentProvider } from './contexts/DepartmentContext';
 import { apiRequest, API_URL } from './utils/api';
 
 // Lazy load components for code splitting
@@ -87,8 +88,9 @@ const App = () => {
   }
 
   return (
-    <div className="drawer lg:drawer-open">
-      <input id="my-drawer" type="checkbox" className="drawer-toggle" />
+    <DepartmentProvider>
+      <div className="drawer lg:drawer-open">
+        <input id="my-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content flex flex-col">
         {/* Navbar for mobile and tablet */}
         <div className="navbar shadow-lg lg:hidden sticky top-0 z-40" style={{ backgroundColor: '#1f2937', color: 'white' }}>
@@ -157,7 +159,8 @@ const App = () => {
           },
         }}
       />
-    </div>
+      </div>
+    </DepartmentProvider>
   );
 };
 

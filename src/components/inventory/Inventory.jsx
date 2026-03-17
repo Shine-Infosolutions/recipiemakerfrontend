@@ -5,13 +5,14 @@ import { MdKitchen, MdEdit, MdDelete, MdRestaurantMenu, MdMoreVert, MdTransferWi
 import Loading from '../common/Loading';
 import Pagination from '../common/Pagination';
 import TransferModal from './TransferModal';
+import { useDepartments } from '../../contexts/DepartmentContext';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
 const Inventory = () => {
   const [items, setItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const { departments } = useDepartments();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -27,7 +28,6 @@ const Inventory = () => {
 
   useEffect(() => {
     fetchItems();
-    fetchDepartments();
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -79,21 +79,6 @@ const Inventory = () => {
       }
     }
   }, [items, selectedDepartment, userRole]);
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch(`${API_URL}/departments`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        console.log('Fetched departments for inventory:', data);
-        setDepartments(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-    }
-  };
 
   const fetchItems = async () => {
     setLoading(true);

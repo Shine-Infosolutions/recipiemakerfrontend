@@ -5,6 +5,7 @@ import { MdRestaurant, MdPerson, MdTimer, MdRestaurantMenu, MdClose, MdAdd, MdDe
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
 import Pagination from '../common/Pagination';
+import { useDepartments } from '../../contexts/DepartmentContext';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -12,7 +13,7 @@ const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [inventory, setInventory] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const { departments } = useDepartments();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -32,7 +33,6 @@ const Recipes = () => {
   useEffect(() => {
     fetchRecipes();
     fetchInventory();
-    fetchDepartments();
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -104,19 +104,6 @@ const Recipes = () => {
     });
     const data = await res.json();
     setInventory(data);
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch(`${API_URL}/departments`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      console.log('Fetched departments:', data);
-      setDepartments(data.filter(dept => dept.isActive));
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-    }
   };
 
   const addIngredient = () => {

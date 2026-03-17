@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { FaBuilding, FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import Loading from '../common/Loading';
+import { useDepartments } from '../../contexts/DepartmentContext';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
 const Departments = () => {
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { departments, loading, refreshDepartments } = useDepartments();
   const [showModal, setShowModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [formData, setFormData] = useState({
@@ -17,28 +17,6 @@ const Departments = () => {
     description: '',
     isActive: true
   });
-
-  useEffect(() => {
-    fetchDepartments();
-  }, []);
-
-  const fetchDepartments = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/departments`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      
-      if (!res.ok) throw new Error('Failed to fetch departments');
-      const data = await res.json();
-      setDepartments(data);
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to fetch departments');
-      setDepartments([]);
-    }
-    setLoading(false);
-  };
 
   const openModal = (department = null) => {
     if (department) {
@@ -102,7 +80,7 @@ const Departments = () => {
       }
       
       closeModal();
-      fetchDepartments();
+      refreshDepartments();
       toast.success(`Department ${editingDepartment ? 'updated' : 'created'} successfully!`);
     } catch (error) {
       toast.error(error.message);
@@ -123,7 +101,7 @@ const Departments = () => {
         throw new Error(error.error || 'Failed to delete department');
       }
       
-      fetchDepartments();
+      refreshDepartments();
       toast.success('Department deleted successfully!');
     } catch (error) {
       toast.error(error.message);
@@ -142,7 +120,7 @@ const Departments = () => {
         throw new Error(error.error || 'Failed to toggle status');
       }
       
-      fetchDepartments();
+      refreshDepartments();
       toast.success('Department status updated!');
     } catch (error) {
       toast.error(error.message);
