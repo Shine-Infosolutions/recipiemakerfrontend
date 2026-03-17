@@ -18,7 +18,9 @@ const Recipes = () => {
   const [cookingRecipe, setCookingRecipe] = useState(null);
   const [cookQuantities, setCookQuantities] = useState({});
   const [showCookModal, setShowCookModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [adjustedIngredients, setAdjustedIngredients] = useState([]);
   const [formData, setFormData] = useState({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [] });
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState({});
@@ -178,7 +180,7 @@ const Recipes = () => {
     });
   };
 
-  const cookRecipe = async (id, isFromRawMaterial) => {
+  const cookRecipe = async (id, isFromRawMaterial, useAdjustedIngredients = false) => {
     try {
       setCookingRecipe(id);
       const quantity = cookQuantities[id] || 1;
@@ -187,6 +189,18 @@ const Recipes = () => {
       if (!recipe) {
         toast.error('Recipe not found');
         return;
+      }
+      
+      // Use adjusted ingredients if provided, otherwise use original recipe ingredients
+      let ingredientsToUse;
+      if (useAdjustedIngredients && adjustedIngredients.length > 0) {
+        // Map adjusted ingredients to use the adjustedQuantity as the actual quantity
+        ingredientsToUse = adjustedIngredients.map(ing => ({
+          ...ing,
+          quantity: ing.adjustedQuantity // Use the adjusted quantity for cooking
+        }));
+      } else {
+        ingredientsToUse = recipe.ingredients;
       }
       
       // Create cooking item in separate collection
@@ -200,10 +214,11 @@ const Recipes = () => {
         body: JSON.stringify({
           recipeId: id,
           title: sourceRecipe.title,
-          ingredients: sourceRecipe.ingredients,
+          ingredients: ingredientsToUse,
           quantity: quantity,
           status: 'cooking',
-          startedAt: new Date().toISOString()
+          startedAt: new Date().toISOString(),
+          isAdjusted: useAdjustedIngredients
         })
       });
       const data = await res.json();
@@ -227,11 +242,40 @@ const Recipes = () => {
       await fetchInventory();
       console.log('Refresh complete');
       setCookQuantities({ ...cookQuantities, [id]: 1 });
+      
+      // Reset adjusted ingredients after cooking
+      if (useAdjustedIngredients) {
+        setAdjustedIngredients([]);
+      }
     } catch (error) {
       toast.error('Error cooking recipe: ' + error.message);
     } finally {
       setCookingRecipe(null);
     }
+  };
+
+  const openAdjustModal = (recipe) => {
+    setSelectedRecipe(recipe);
+    // Initialize adjusted ingredients with original recipe quantities
+    setAdjustedIngredients(recipe.ingredients.map(ing => ({
+      ...ing,
+      adjustedQuantity: ing.quantity
+    })));
+    setShowAdjustModal(true);
+  };
+
+  const updateAdjustedQuantity = (index, newQuantity) => {
+    const updated = [...adjustedIngredients];
+    updated[index].adjustedQuantity = parseFloat(newQuantity) || 0;
+    // Keep the original quantity for reference, but use adjustedQuantity for cooking
+    setAdjustedIngredients(updated);
+  };
+
+  const canCookWithAdjustedIngredients = () => {
+    return adjustedIngredients.every(ing => {
+      const invItem = inventory.find(i => i._id === ing.inventoryId?._id);
+      return invItem && invItem.quantity >= ing.adjustedQuantity;
+    });
   };
 
   const deleteRecipe = async (id) => {
@@ -263,7 +307,7 @@ const Recipes = () => {
       servings: recipe.servings || '',
       sellingPrice: recipe.sellingPrice || '',
       ingredients: recipe.ingredients.map(ing => ({
-        inventoryId: ing.inventoryId._id,
+        inventoryId: ing.inventoryId?._id || '',
         quantity: ing.quantity,
         unit: ing.unit
       }))
@@ -473,6 +517,105 @@ const Recipes = () => {
           </div>
         )}
 
+        {showAdjustModal && selectedRecipe && (
+          <div className="modal modal-open">
+            <div className="modal-box max-w-4xl">
+              <h3 className="font-bold text-lg mb-4">
+                <MdEdit className="inline mr-2" /> Adjust Recipe Quantities
+              </h3>
+              <div className="mb-4">
+                <h4 className="text-base font-semibold mb-3">{selectedRecipe.title}</h4>
+                <p className="text-sm text-gray-600 mb-4">Adjust ingredient quantities for this specific order:</p>
+              </div>
+              
+              <div className="max-h-96 overflow-y-auto space-y-4 mb-6">
+                {adjustedIngredients.map((ingredient, index) => {
+                  const invItem = inventory.find(i => i._id === ingredient.inventoryId?._id);
+                  const hasEnough = invItem && invItem.quantity >= ingredient.adjustedQuantity;
+                  
+                  return (
+                    <div key={index} className="card bg-base-200 p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <div>
+                          <span className="font-semibold text-base">{ingredient.inventoryId?.name || 'Unknown'}</span>
+                          <div className="text-sm text-gray-600">
+                            Available: {invItem?.quantity || 0} {ingredient.unit}
+                          </div>
+                        </div>
+                        <div className={`badge ${hasEnough ? 'badge-success' : 'badge-error'}`}>
+                          {hasEnough ? 'Available' : 'Insufficient'}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text">Original Quantity</span>
+                          </label>
+                          <input
+                            type="text"
+                            className="input input-bordered"
+                            value={`${ingredient.quantity} ${ingredient.unit}`}
+                            disabled
+                          />
+                        </div>
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text">Adjusted Quantity</span>
+                          </label>
+                          <div className="input-group">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              className={`input input-bordered flex-1 ${!hasEnough ? 'input-error' : ''}`}
+                              value={ingredient.adjustedQuantity}
+                              onChange={(e) => updateAdjustedQuantity(index, e.target.value)}
+                            />
+                            <span className="bg-base-300 px-3 py-2 text-sm font-medium">{ingredient.unit}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="bg-base-200 p-4 rounded-lg mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Recipe Status:</span>
+                  <div className={`badge ${canCookWithAdjustedIngredients() ? 'badge-success' : 'badge-error'}`}>
+                    {canCookWithAdjustedIngredients() ? 'Ready to Cook' : 'Insufficient Ingredients'}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setShowAdjustModal(false);
+                    setAdjustedIngredients([]);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-warning mr-2"
+                  onClick={() => {
+                    setShowAdjustModal(false);
+                    setShowCookModal(true);
+                  }}
+                  disabled={!canCookWithAdjustedIngredients()}
+                >
+                  Continue to Cook
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {showCookModal && selectedRecipe && (
           <div className="modal modal-open">
             <div className="modal-box">
@@ -517,7 +660,8 @@ const Recipes = () => {
                   className="btn btn-success"
                   onClick={() => {
                     setShowCookModal(false);
-                    cookRecipe(selectedRecipe._id, selectedRecipe.isFromRawMaterial);
+                    const useAdjusted = adjustedIngredients.length > 0;
+                    cookRecipe(selectedRecipe._id, selectedRecipe.isFromRawMaterial, useAdjusted);
                   }}
                 >
                   <GiCookingPot className="text-base mr-1" /> Cook Now
@@ -624,6 +768,27 @@ const Recipes = () => {
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                           <button
+                            onClick={() => openAdjustModal(recipe)}
+                            disabled={originalRecipe?.isActive === false}
+                            style={{
+                              padding: '6px 12px',
+                              background: originalRecipe?.isActive !== false ? '#ffa502' : '#95a5a6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: originalRecipe?.isActive !== false ? 'pointer' : 'not-allowed',
+                              fontWeight: '600',
+                              fontSize: '12px',
+                              opacity: originalRecipe?.isActive !== false ? 1 : 0.6,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <MdEdit style={{ fontSize: '14px' }} /> Adjust
+                          </button>
+                          
+                          <button
                             onClick={() => {
                               setSelectedRecipe(recipe);
                               setCookQuantities({ ...cookQuantities, [recipe._id]: 1 });
@@ -653,7 +818,15 @@ const Recipes = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setDropdownOpen({ ...dropdownOpen, [recipe._id]: !dropdownOpen[recipe._id] });
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setDropdownOpen({ 
+                                    ...dropdownOpen, 
+                                    [recipe._id]: !dropdownOpen[recipe._id] ? {
+                                      open: true,
+                                      x: rect.right - 120, // Position to the left of button
+                                      y: rect.bottom + 5   // Position below button
+                                    } : false
+                                  });
                                 }}
                                 style={{
                                   padding: '6px',
@@ -672,14 +845,14 @@ const Recipes = () => {
                               
                               {dropdownOpen[recipe._id] && (
                                 <div style={{
-                                  position: 'absolute',
-                                  top: '100%',
-                                  right: '0',
+                                  position: 'fixed',
+                                  top: `${dropdownOpen[recipe._id].y}px`,
+                                  left: `${dropdownOpen[recipe._id].x}px`,
                                   background: 'white',
                                   border: '1px solid #e9ecef',
-                                  borderRadius: '6px',
-                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                  zIndex: 1000,
+                                  borderRadius: '8px',
+                                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                                  zIndex: 9999,
                                   minWidth: '120px'
                                 }}>
                                   <button

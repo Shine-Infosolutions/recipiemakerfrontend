@@ -10,6 +10,7 @@ import InProgress from './components/cooking/InProgress';
 import Cooking from './components/cooking/Cooking';
 import SemiFinished from './components/semifinished/SemiFinished';
 import LossGoods from './components/loss/LossGoods';
+import AdjustedRecipes from './components/adjustedrecipes/AdjustedRecipes';
 import Departments from './components/departments/Departments';
 import Users from './components/users/Users';
 import ChangePassword from './components/ChangePassword';
@@ -109,6 +110,7 @@ const App = () => {
           {activeTab === 'cooking' && <Cooking />}
           {activeTab === 'semifinished' && <SemiFinished />}
           {activeTab === 'lossgoods' && <LossGoods />}
+          {activeTab === 'adjustedrecipes' && <AdjustedRecipes />}
           {activeTab === 'departments' && <Departments />}
           {activeTab === 'users' && userRole === 'Admin' && <Users />}
           {activeTab === 'inventory-report' && userRole === 'Admin' && <InventoryReport />}

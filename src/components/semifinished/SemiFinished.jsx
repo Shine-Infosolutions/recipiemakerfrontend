@@ -38,10 +38,9 @@ const SemiFinished = () => {
     
     if (userRole === 'Admin') {
       if (selectedDepartment) {
-        filtered = filtered.filter(item => {
-          const recipe = recipes.find(r => r._id === item.recipeId);
-          return recipe?.departmentId?._id === selectedDepartment;
-        });
+        filtered = filtered.filter(item => 
+          item.recipeId?.departmentId?._id === selectedDepartment
+        );
       }
     } else {
       const token = localStorage.getItem('token');
@@ -49,10 +48,9 @@ const SemiFinished = () => {
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
           if (payload.departmentId) {
-            filtered = filtered.filter(item => {
-              const recipe = recipes.find(r => r._id === item.recipeId);
-              return recipe?.departmentId?._id === payload.departmentId;
-            });
+            filtered = filtered.filter(item => 
+              item.recipeId?.departmentId?._id === payload.departmentId
+            );
           }
         } catch (error) {
           // Keep all items if parsing fails
@@ -61,7 +59,7 @@ const SemiFinished = () => {
     }
     
     setFilteredCancelledRecipes(filtered);
-  }, [cancelledRecipes, recipes, selectedDepartment, userRole]);
+  }, [cancelledRecipes, selectedDepartment, userRole]);
 
   const fetchDepartments = async () => {
     try {
@@ -303,12 +301,28 @@ const SemiFinished = () => {
             </thead>
             <tbody>
               {filteredRecipes.map((recipe) => {
-                const recipeData = recipes.find(r => r._id === recipe.recipeId);
                 return (
                 <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef', borderLeft: '3px solid #ffa502' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{recipe.title}</td>
+                  <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {recipe.title}
+                      {recipe.isAdjusted && (
+                        <span style={{
+                          fontSize: '10px',
+                          color: '#ff6b35',
+                          background: '#fff3e0',
+                          padding: '2px 6px',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          border: '1px solid #ffcc99'
+                        }}>
+                          ADJUSTED
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ padding: '16px' }}>
-                    {recipeData?.departmentId ? (
+                    {recipe.recipeId?.departmentId ? (
                       <span style={{ 
                         fontSize: '11px', 
                         color: '#667eea', 
@@ -317,7 +331,7 @@ const SemiFinished = () => {
                         borderRadius: '12px', 
                         fontWeight: '600' 
                       }}>
-                        {recipeData.departmentId.name} ({recipeData.departmentId.code})
+                        {recipe.recipeId.departmentId.name} ({recipe.recipeId.departmentId.code})
                       </span>
                     ) : (
                       <span style={{ color: '#ff4757', fontSize: '12px' }}>No Department</span>
@@ -365,7 +379,7 @@ const SemiFinished = () => {
                   </td>
                 </tr>
                 );
-              })}
+              })}}
             </tbody>
           </table>
         </div>

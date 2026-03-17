@@ -262,7 +262,24 @@ const InProgress = () => {
                 const totalValue = (item.recipeId?.sellingPrice || 0) * item.quantity;
                 return (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>{item.title}</td>
+                  <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {item.title}
+                      {item.isAdjusted && (
+                        <span style={{
+                          fontSize: '10px',
+                          color: '#ff6b35',
+                          background: '#fff3e0',
+                          padding: '2px 6px',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          border: '1px solid #ffcc99'
+                        }}>
+                          ADJUSTED
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ padding: '16px' }}>
                     {item.recipeId?.departmentId ? (
                       <span style={{ 
