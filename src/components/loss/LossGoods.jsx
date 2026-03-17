@@ -410,7 +410,7 @@ const LossGoods = () => {
                         }}>
                           {ing.lostQuantity > 0 && '❌ '}{ing.name || 'Unknown'}: {ing.lostQuantity > 0 ? ing.lostQuantity : ing.quantity}{ing.unit}
                         </span>
-                      ))}}
+                      ))}
                     </div>
                   </td>
                   <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>

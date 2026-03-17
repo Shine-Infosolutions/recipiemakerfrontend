@@ -363,7 +363,7 @@ const Cooking = () => {
                   </td>
                 </tr>
                 );
-              })}}
+              })}
             </tbody>
           </table>
         </div>
