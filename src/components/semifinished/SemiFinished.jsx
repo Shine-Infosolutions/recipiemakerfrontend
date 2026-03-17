@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MdRestaurant, MdDelete, MdCalendarToday } from 'react-icons/md';
 import { BiError } from 'react-icons/bi';
 import Loading from '../common/Loading';
+import Pagination from '../common/Pagination';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -17,6 +18,8 @@ const SemiFinished = () => {
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchCancelledRecipes();
@@ -143,6 +146,22 @@ const SemiFinished = () => {
   };
 
   const filteredRecipes = filterRecipes();
+
+  // Pagination logic
+  const totalItems = filteredRecipes.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRecipes = filteredRecipes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDepartment, filterType, startDate, endDate, filteredCancelledRecipes.length]);
 
   return (
     <>
@@ -300,7 +319,7 @@ const SemiFinished = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRecipes.map((recipe) => {
+              {currentRecipes.map((recipe) => {
                 return (
                 <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef', borderLeft: '3px solid #ffa502' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>
@@ -383,6 +402,17 @@ const SemiFinished = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {filteredRecipes.length === 0 && (
           <motion.div

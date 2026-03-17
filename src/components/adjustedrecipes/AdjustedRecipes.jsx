@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MdEdit, MdCalendarToday, MdCompareArrows } from 'react-icons/md';
 import Loading from '../common/Loading';
+import Pagination from '../common/Pagination';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -13,6 +14,8 @@ const AdjustedRecipes = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchAdjustedRecipes();
@@ -64,6 +67,22 @@ const AdjustedRecipes = () => {
   };
 
   const filteredRecipes = filterRecipes();
+
+  // Pagination logic
+  const totalItems = filteredRecipes.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRecipes = filteredRecipes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, startDate, endDate, adjustedRecipes.length]);
 
   return (
     <>
@@ -167,7 +186,7 @@ const AdjustedRecipes = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRecipes.map((recipe) => (
+              {currentRecipes.map((recipe) => (
                 <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef', borderLeft: '3px solid #ff6b35' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff8f0'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -247,6 +266,17 @@ const AdjustedRecipes = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {filteredRecipes.length === 0 && (
           <motion.div

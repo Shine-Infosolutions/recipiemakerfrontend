@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MdRestaurant, MdDelete, MdCalendarToday } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
+import Pagination from '../common/Pagination';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -17,6 +18,8 @@ const Cooking = () => {
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchCookedRecipes();
@@ -141,6 +144,22 @@ const Cooking = () => {
   };
 
   const filteredRecipes = filterRecipes();
+
+  // Pagination logic
+  const totalItems = filteredRecipes.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRecipes = filteredRecipes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDepartment, filterType, startDate, endDate, filteredCookedRecipes.length]);
 
   return (
     <>
@@ -298,7 +317,7 @@ const Cooking = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRecipes.map((recipe) => {
+              {currentRecipes.map((recipe) => {
                 const totalValue = (recipe.recipeId?.sellingPrice || 0) * recipe.quantity;
                 return (
                 <tr key={recipe._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
@@ -367,6 +386,17 @@ const Cooking = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {filteredRecipes.length === 0 && (
           <motion.div

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { MdRestaurant, MdPerson, MdTimer, MdRestaurantMenu, MdClose, MdAdd, MdDelete, MdEdit, MdMoreVert } from 'react-icons/md';
 import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
+import Pagination from '../common/Pagination';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -25,6 +26,8 @@ const Recipes = () => {
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState({});
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'Staff');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchRecipes();
@@ -315,6 +318,22 @@ const Recipes = () => {
     setEditingId(recipe._id);
     setShowForm(true);
   };
+
+  // Pagination logic
+  const totalItems = allRecipes.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRecipes = allRecipes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDepartment, allRecipes.length]);
 
   return (
     <>
@@ -686,7 +705,7 @@ const Recipes = () => {
                 </tr>
               </thead>
               <tbody>
-                {allRecipes.map((recipe) => {
+                {currentRecipes.map((recipe) => {
                   const originalRecipe = recipes.find(r => r._id === recipe._id);
                   return (
                     <tr
@@ -891,6 +910,17 @@ const Recipes = () => {
             </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {allRecipes.length === 0 && (
           <motion.div

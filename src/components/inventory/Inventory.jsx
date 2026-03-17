@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MdKitchen, MdEdit, MdDelete, MdRestaurantMenu, MdMoreVert, MdTransferWithinAStation } from 'react-icons/md';
 import Loading from '../common/Loading';
+import Pagination from '../common/Pagination';
 import TransferModal from './TransferModal';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
@@ -21,6 +22,8 @@ const Inventory = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedItemForTransfer, setSelectedItemForTransfer] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchItems();
@@ -183,6 +186,22 @@ const Inventory = () => {
   const handleTransferSuccess = (transfer) => {
     fetchItems(); // Refresh the inventory list
   };
+
+  // Pagination logic
+  const totalItems = filteredItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = filteredItems.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDepartment, filteredItems.length]);
 
   return (
     <>
@@ -519,7 +538,7 @@ const Inventory = () => {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(filteredItems) && filteredItems.map((item) => (
+              {Array.isArray(currentItems) && currentItems.map((item) => (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td>
                     <span className="badge badge-secondary badge-sm">
@@ -563,6 +582,17 @@ const Inventory = () => {
           </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {Array.isArray(filteredItems) && filteredItems.length === 0 && !showForm && (
           <motion.div

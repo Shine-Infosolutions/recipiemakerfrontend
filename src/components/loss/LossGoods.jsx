@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { MdError, MdDelete, MdRestaurantMenu, MdAdd, MdCalendarToday } from 'react-icons/md';
 import { BiError } from 'react-icons/bi';
 import Loading from '../common/Loading';
+import Pagination from '../common/Pagination';
 import ManualLossForm from './ManualLossForm';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
@@ -20,6 +21,8 @@ const LossGoods = () => {
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchLossItems();
@@ -155,6 +158,22 @@ const LossGoods = () => {
 
   const finalFilteredItems = filterLossItems();
   const totalLossValue = finalFilteredItems.reduce((sum, item) => sum + calculateLossValue(item), 0);
+
+  // Pagination logic
+  const totalItems = finalFilteredItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = finalFilteredItems.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDepartment, filterType, startDate, endDate, filteredLossItems.length]);
 
   return (
     <>
@@ -373,7 +392,7 @@ const LossGoods = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredLossItems.map((item) => {
+              {currentItems.map((item) => {
                 const lossValue = calculateLossValue(item);
                 return (
                 <tr key={item._id} style={{ borderBottom: '1px solid #e9ecef', borderLeft: '3px solid #ff4757' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
@@ -464,6 +483,17 @@ const LossGoods = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {finalFilteredItems.length === 0 && (
           <motion.div
