@@ -201,37 +201,52 @@ const LossGoods = () => {
           borderRadius: '12px', 
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
           border: '1px solid #e9ecef',
-          marginBottom: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          marginBottom: '16px'
         }}>
-          <div>
-            <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Items</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>{finalFilteredItems.length}</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Value</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>₹{totalLossValue.toFixed(2)}</p>
-          </div>
-          <button 
-            onClick={() => setShowManualForm(true)}
-            style={{ 
-              padding: '12px 16px', 
-              background: '#ff4757', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
-              cursor: 'pointer', 
-              fontWeight: '600', 
-              fontSize: '14px', 
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+            justifyContent: 'space-between', 
+            alignItems: window.innerWidth < 768 ? 'stretch' : 'center',
+            gap: window.innerWidth < 768 ? '16px' : '20px'
+          }}>
+            <div style={{ 
               display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px' 
-            }}
-          >
-            <MdAdd style={{ fontSize: '18px' }} /> Add Manual Loss
-          </button>
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flex: 1
+            }}>
+              <div>
+                <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Items</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>{finalFilteredItems.length}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#636e72', fontWeight: '600' }}>Total Loss Value</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '24px', color: '#ff4757', fontWeight: '700' }}>₹{totalLossValue.toFixed(2)}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowManualForm(true)}
+              style={{ 
+                padding: window.innerWidth < 768 ? '12px 16px' : '12px 16px',
+                background: '#ff4757', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: window.innerWidth < 768 ? '13px' : '14px',
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: '6px',
+                minWidth: window.innerWidth < 768 ? '100%' : 'auto',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <MdAdd style={{ fontSize: '18px' }} /> Add Manual Loss
+            </button>
+          </div>
         </div>
         
         {/* Date Filter Controls */}
