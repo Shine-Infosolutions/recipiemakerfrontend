@@ -329,7 +329,7 @@ const InProgress = () => {
                   </td>
                 </tr>
                 );
-              })}}
+              })}
             </tbody>
           </table>
         </div>
