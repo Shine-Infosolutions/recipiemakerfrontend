@@ -5,7 +5,7 @@ import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
 import { FaFire, FaChevronDown, FaChevronRight, FaBuilding } from 'react-icons/fa';
 
-const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
+const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole, user }) => {
   const [showReportsSubmenu, setShowReportsSubmenu] = useState(false);
 
   const getNavItemsForRole = (role) => {
@@ -80,11 +80,35 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole }) => {
             <span>Recipe Maker</span>
           </h2>
           <p className="text-xs text-white/80 mt-2">Manage your kitchen</p>
+          
+          {/* User and Department Info */}
+          {user && (
+            <div className="mt-4 p-3 bg-white/10 rounded-lg backdrop-blur-sm border border-white/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-bold">{user.name?.charAt(0) || user.email?.charAt(0) || 'U'}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{user.name || user.email}</p>
+                  <p className="text-xs text-white/70">{userRole}</p>
+                </div>
+              </div>
+              {user.departmentId && (
+                <div className="flex items-center gap-2 mt-2 p-2 bg-white/10 rounded-md">
+                  <FaBuilding className="text-xs text-white/80" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white truncate">{user.departmentId.name}</p>
+                    <p className="text-xs text-white/60">Code: {user.departmentId.code}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Menu items */}
         <div className="flex-1 relative z-10" style={{
-          maxHeight: 'calc(100vh - 200px)',
+          maxHeight: user ? 'calc(100vh - 320px)' : 'calc(100vh - 200px)',
           overflowY: 'auto',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none'

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useUser } from '../contexts/UserContext';
 
 const Login = ({ onSuccess }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const { login } = useUser();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,6 +28,16 @@ const Login = ({ onSuccess }) => {
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('userRole', data.user.role || 'User');
+      
+      // Store complete user data in context
+      login({
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        role: data.user.role,
+        departmentId: data.user.departmentId
+      });
+      
       onSuccess();
     } catch (err) {
       console.error('Login error:', err);

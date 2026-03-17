@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import Loading from './components/common/Loading';
 import { DepartmentProvider } from './contexts/DepartmentContext';
+import { UserProvider, useUser } from './contexts/UserContext';
 import { apiRequest, API_URL } from './utils/api';
 
 // Lazy load components for code splitting
@@ -28,12 +29,13 @@ const TransferReport = React.lazy(() => import('./components/reports/TransferRep
 const BulkDataManager = React.lazy(() => import('./components/BulkDataManager'));
 const Analytics = React.lazy(() => import('./components/analytics/Analytics'));
 
-const App = () => {
+const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'Staff');
+  const { user, logout: userLogout } = useUser();
+  const userRole = user?.role || localStorage.getItem('userRole') || 'Staff';
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -59,15 +61,12 @@ const App = () => {
   }, [isLoggedIn]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
+    userLogout();
     setIsLoggedIn(false);
-    setUserRole('Staff');
   };
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
-    setUserRole(localStorage.getItem('userRole') || 'Staff');
   };
 
   if (!isLoggedIn) {
@@ -103,6 +102,11 @@ const App = () => {
           </div>
           <div className="flex-1">
             <span className="text-xl font-bold" style={{ color: 'white' }}>🍳 Recipe Maker</span>
+            {user?.departmentId && (
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+                {user.departmentId.name} ({user.departmentId.code})
+              </div>
+            )}
           </div>
         </div>
 
@@ -138,6 +142,7 @@ const App = () => {
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
         userRole={userRole}
+        user={user}
       />
       <Toaster
         position="top-right"
@@ -161,6 +166,16 @@ const App = () => {
       />
       </div>
     </DepartmentProvider>
+  );
+};
+
+const App = () => {
+  return (
+    <UserProvider>
+      <DepartmentProvider>
+        <AppContent />
+      </DepartmentProvider>
+    </UserProvider>
   );
 };
 
