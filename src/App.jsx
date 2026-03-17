@@ -1,28 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import Register from './components/Register';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/dashboard/Dashboard';
-import Inventory from './components/inventory/Inventory';
-import Recipes from './components/recipes/Recipes';
-import InProgress from './components/cooking/InProgress';
-import Cooking from './components/cooking/Cooking';
-import SemiFinished from './components/semifinished/SemiFinished';
-import LossGoods from './components/loss/LossGoods';
-import AdjustedRecipes from './components/adjustedrecipes/AdjustedRecipes';
-import Departments from './components/departments/Departments';
-import Users from './components/users/Users';
-import ChangePassword from './components/ChangePassword';
-import InventoryReport from './components/reports/InventoryReport';
-import RecipeReport from './components/reports/RecipeReport';
-import ProductionReport from './components/reports/ProductionReport';
-import RevenueReport from './components/reports/RevenueReport';
-import StockLogsReport from './components/reports/StockLogsReport';
-import TransferReport from './components/reports/TransferReport';
-import BulkDataManager from './components/BulkDataManager';
-import Analytics from './components/analytics/Analytics';
+import Loading from './components/common/Loading';
 import { apiRequest, API_URL } from './utils/api';
+
+// Lazy load components for code splitting
+const Dashboard = React.lazy(() => import('./components/dashboard/Dashboard'));
+const Inventory = React.lazy(() => import('./components/inventory/Inventory'));
+const Recipes = React.lazy(() => import('./components/recipes/Recipes'));
+const InProgress = React.lazy(() => import('./components/cooking/InProgress'));
+const Cooking = React.lazy(() => import('./components/cooking/Cooking'));
+const SemiFinished = React.lazy(() => import('./components/semifinished/SemiFinished'));
+const LossGoods = React.lazy(() => import('./components/loss/LossGoods'));
+const AdjustedRecipes = React.lazy(() => import('./components/adjustedrecipes/AdjustedRecipes'));
+const Departments = React.lazy(() => import('./components/departments/Departments'));
+const Users = React.lazy(() => import('./components/users/Users'));
+const ChangePassword = React.lazy(() => import('./components/ChangePassword'));
+const InventoryReport = React.lazy(() => import('./components/reports/InventoryReport'));
+const RecipeReport = React.lazy(() => import('./components/reports/RecipeReport'));
+const ProductionReport = React.lazy(() => import('./components/reports/ProductionReport'));
+const RevenueReport = React.lazy(() => import('./components/reports/RevenueReport'));
+const StockLogsReport = React.lazy(() => import('./components/reports/StockLogsReport'));
+const TransferReport = React.lazy(() => import('./components/reports/TransferReport'));
+const BulkDataManager = React.lazy(() => import('./components/BulkDataManager'));
+const Analytics = React.lazy(() => import('./components/analytics/Analytics'));
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -103,25 +106,27 @@ const App = () => {
 
         {/* Page content */}
         <div className="flex-1 overflow-auto" style={{ backgroundColor: 'white' }}>
-          {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} />}
-          {activeTab === 'inventory' && <Inventory />}
-          {activeTab === 'recipes' && <Recipes />}
-          {activeTab === 'inprogress' && <InProgress />}
-          {activeTab === 'cooking' && <Cooking />}
-          {activeTab === 'semifinished' && <SemiFinished />}
-          {activeTab === 'lossgoods' && <LossGoods />}
-          {activeTab === 'adjustedrecipes' && <AdjustedRecipes />}
-          {activeTab === 'departments' && <Departments />}
-          {activeTab === 'users' && userRole === 'Admin' && <Users />}
-          {activeTab === 'inventory-report' && userRole === 'Admin' && <InventoryReport />}
-          {activeTab === 'recipe-report' && userRole === 'Admin' && <RecipeReport />}
-          {activeTab === 'production-report' && userRole === 'Admin' && <ProductionReport />}
-          {activeTab === 'revenue-report' && userRole === 'Admin' && <RevenueReport />}
-          {activeTab === 'stock-logs-report' && userRole === 'Admin' && <StockLogsReport />}
-          {activeTab === 'transfer-report' && userRole === 'Admin' && <TransferReport />}
-          {activeTab === 'bulk-data' && userRole === 'Admin' && <BulkDataManager />}
-          {activeTab === 'analytics' && userRole === 'Admin' && <Analytics />}
-          {activeTab === 'settings' && <ChangePassword />}
+          <Suspense fallback={<Loading />}>
+            {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} />}
+            {activeTab === 'inventory' && <Inventory />}
+            {activeTab === 'recipes' && <Recipes />}
+            {activeTab === 'inprogress' && <InProgress />}
+            {activeTab === 'cooking' && <Cooking />}
+            {activeTab === 'semifinished' && <SemiFinished />}
+            {activeTab === 'lossgoods' && <LossGoods />}
+            {activeTab === 'adjustedrecipes' && <AdjustedRecipes />}
+            {activeTab === 'departments' && <Departments />}
+            {activeTab === 'users' && userRole === 'Admin' && <Users />}
+            {activeTab === 'inventory-report' && userRole === 'Admin' && <InventoryReport />}
+            {activeTab === 'recipe-report' && userRole === 'Admin' && <RecipeReport />}
+            {activeTab === 'production-report' && userRole === 'Admin' && <ProductionReport />}
+            {activeTab === 'revenue-report' && userRole === 'Admin' && <RevenueReport />}
+            {activeTab === 'stock-logs-report' && userRole === 'Admin' && <StockLogsReport />}
+            {activeTab === 'transfer-report' && userRole === 'Admin' && <TransferReport />}
+            {activeTab === 'bulk-data' && userRole === 'Admin' && <BulkDataManager />}
+            {activeTab === 'analytics' && userRole === 'Admin' && <Analytics />}
+            {activeTab === 'settings' && <ChangePassword />}
+          </Suspense>
         </div>
       </div>
 
