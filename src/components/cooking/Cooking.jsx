@@ -5,6 +5,8 @@ import { GiCookingPot } from 'react-icons/gi';
 import Loading from '../common/Loading';
 import Pagination from '../common/Pagination';
 import { useDepartments } from '../../contexts/DepartmentContext';
+import { useUser } from '../../contexts/UserContext';
+import { canDelete, canViewAllDepartments } from '../../utils/permissions';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -13,56 +15,42 @@ const Cooking = () => {
   const [filteredCookedRecipes, setFilteredCookedRecipes] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const { departments } = useDepartments();
+  const { user } = useUser();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+
+  const userRole = user?.role || 'store';
 
   useEffect(() => {
     fetchCookedRecipes();
     fetchRecipes();
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(payload.role);
-      } catch (error) {
-        console.error('Error parsing token:', error);
-      }
-    }
   }, []);
 
   useEffect(() => {
     let filtered = cookedRecipes;
     
-    if (userRole === 'Admin') {
+    if (canViewAllDepartments(userRole)) {
       if (selectedDepartment) {
         filtered = filtered.filter(item => 
           item.recipeId?.departmentId?._id === selectedDepartment
         );
       }
     } else {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.departmentId) {
-            filtered = filtered.filter(item => 
-              item.recipeId?.departmentId?._id === payload.departmentId
-            );
-          }
-        } catch (error) {
-          // Keep all items if parsing fails
-        }
+      // Kitchen and other users see only their department's items
+      if (user?.departmentId) {
+        filtered = filtered.filter(item => 
+          item.recipeId?.departmentId?._id === user.departmentId
+        );
       }
     }
     
     setFilteredCookedRecipes(filtered);
-  }, [cookedRecipes, selectedDepartment, userRole]);
+  }, [cookedRecipes, selectedDepartment, userRole, user]);
 
   const fetchRecipes = async () => {
     try {
@@ -162,7 +150,7 @@ const Cooking = () => {
             </h1>
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>View your finished goods</p>}
           </div>
-          {userRole === 'Admin' && (
+          {canViewAllDepartments(userRole) && (
             <select
               style={{
                 padding: '8px 12px',

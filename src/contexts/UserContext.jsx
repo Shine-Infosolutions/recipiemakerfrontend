@@ -17,9 +17,11 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     // Load user data from localStorage on app start
     const token = localStorage.getItem('token');
+    
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+        
         const userData = {
           id: payload.userId,
           role: payload.role,

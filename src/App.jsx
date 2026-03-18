@@ -7,6 +7,8 @@ import Loading from './components/common/Loading';
 import { DepartmentProvider } from './contexts/DepartmentContext';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { apiRequest, API_URL } from './utils/api';
+import { canAccessPage } from './utils/permissions';
+import { hasValidToken, clearAuthData } from './utils/authUtils';
 
 // Lazy load components for code splitting
 const Dashboard = React.lazy(() => import('./components/dashboard/Dashboard'));
@@ -30,12 +32,43 @@ const BulkDataManager = React.lazy(() => import('./components/BulkDataManager'))
 const Analytics = React.lazy(() => import('./components/analytics/Analytics'));
 
 const AppContent = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(null); // null = checking, false = not logged in, true = logged in
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const { user, logout: userLogout } = useUser();
-  const userRole = user?.role || localStorage.getItem('userRole') || 'Staff';
+  const { user, logout: userLogout, loading: userLoading } = useUser();
+  const userRole = user?.role;
+
+  // Set default page based on user role
+  useEffect(() => {
+    if (userRole) {
+      let defaultTab = 'dashboard'; // Default for admin and manager
+      
+      if (userRole === 'kitchen') {
+        defaultTab = 'recipes';
+      } else if (userRole === 'store') {
+        defaultTab = 'inventory';
+      }
+      
+      setActiveTab(defaultTab);
+    }
+  }, [userRole]);
+
+  // Check for valid token on app start
+  useEffect(() => {
+    const checkAuth = () => {
+      if (hasValidToken()) {
+        setIsLoggedIn(true);
+      } else {
+        clearAuthData();
+        setIsLoggedIn(false);
+      }
+    };
+    
+    // Add a small delay to prevent flash
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -69,6 +102,11 @@ const AppContent = () => {
     setIsLoggedIn(true);
   };
 
+  // Show loading screen while checking authentication or user is loading
+  if (isLoggedIn === null || userLoading) {
+    return <Loading />;
+  }
+
   if (!isLoggedIn) {
     return (
       <div>
@@ -86,10 +124,14 @@ const AppContent = () => {
     );
   }
 
+  // Don't render pages until user is loaded to avoid permission issues
+  if (!user || !userRole) {
+    return <Loading />;
+  }
+
   return (
-    <DepartmentProvider>
-      <div className="drawer lg:drawer-open">
-        <input id="my-drawer" type="checkbox" className="drawer-toggle" />
+    <div className="drawer lg:drawer-open">
+      <input id="my-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content flex flex-col">
         {/* Navbar for mobile and tablet */}
         <div className="navbar shadow-lg lg:hidden sticky top-0 z-40" style={{ backgroundColor: '#1f2937', color: 'white' }}>
@@ -113,24 +155,24 @@ const AppContent = () => {
         {/* Page content */}
         <div className="flex-1 overflow-auto" style={{ backgroundColor: 'white' }}>
           <Suspense fallback={<Loading />}>
-            {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} />}
-            {activeTab === 'inventory' && <Inventory />}
-            {activeTab === 'recipes' && <Recipes />}
-            {activeTab === 'inprogress' && <InProgress />}
-            {activeTab === 'cooking' && <Cooking />}
-            {activeTab === 'semifinished' && <SemiFinished />}
-            {activeTab === 'lossgoods' && <LossGoods />}
-            {activeTab === 'adjustedrecipes' && <AdjustedRecipes />}
-            {activeTab === 'departments' && <Departments />}
-            {activeTab === 'users' && userRole === 'Admin' && <Users />}
-            {activeTab === 'inventory-report' && userRole === 'Admin' && <InventoryReport />}
-            {activeTab === 'recipe-report' && userRole === 'Admin' && <RecipeReport />}
-            {activeTab === 'production-report' && userRole === 'Admin' && <ProductionReport />}
-            {activeTab === 'revenue-report' && userRole === 'Admin' && <RevenueReport />}
-            {activeTab === 'stock-logs-report' && userRole === 'Admin' && <StockLogsReport />}
-            {activeTab === 'transfer-report' && userRole === 'Admin' && <TransferReport />}
-            {activeTab === 'bulk-data' && userRole === 'Admin' && <BulkDataManager />}
-            {activeTab === 'analytics' && userRole === 'Admin' && <Analytics />}
+            {activeTab === 'dashboard' && canAccessPage(userRole, 'dashboard') && <Dashboard setActiveTab={setActiveTab} />}
+            {activeTab === 'inventory' && canAccessPage(userRole, 'inventory') && <Inventory />}
+            {activeTab === 'recipes' && canAccessPage(userRole, 'recipes') && <Recipes />}
+            {activeTab === 'inprogress' && canAccessPage(userRole, 'inprogress') && <InProgress />}
+            {activeTab === 'cooking' && canAccessPage(userRole, 'cooking') && <Cooking />}
+            {activeTab === 'semifinished' && canAccessPage(userRole, 'semifinished') && <SemiFinished />}
+            {activeTab === 'lossgoods' && canAccessPage(userRole, 'lossgoods') && <LossGoods />}
+            {activeTab === 'adjustedrecipes' && canAccessPage(userRole, 'adjustedrecipes') && <AdjustedRecipes />}
+            {activeTab === 'departments' && canAccessPage(userRole, 'departments') && <Departments />}
+            {activeTab === 'users' && canAccessPage(userRole, 'users') && <Users />}
+            {activeTab === 'inventory-report' && canAccessPage(userRole, 'inventory-report') && <InventoryReport />}
+            {activeTab === 'recipe-report' && canAccessPage(userRole, 'recipe-report') && <RecipeReport />}
+            {activeTab === 'production-report' && canAccessPage(userRole, 'production-report') && <ProductionReport />}
+            {activeTab === 'revenue-report' && canAccessPage(userRole, 'revenue-report') && <RevenueReport />}
+            {activeTab === 'stock-logs-report' && canAccessPage(userRole, 'stock-logs-report') && <StockLogsReport />}
+            {activeTab === 'transfer-report' && canAccessPage(userRole, 'transfer-report') && <TransferReport />}
+            {activeTab === 'bulk-data' && canAccessPage(userRole, 'bulk-data') && <BulkDataManager />}
+            {activeTab === 'analytics' && canAccessPage(userRole, 'analytics') && <Analytics />}
             {activeTab === 'settings' && <ChangePassword />}
           </Suspense>
         </div>
@@ -164,8 +206,7 @@ const AppContent = () => {
           },
         }}
       />
-      </div>
-    </DepartmentProvider>
+    </div>
   );
 };
 

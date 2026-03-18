@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
+import { apiGet, API_URL } from '../utils/apiUtils';
 
 const DepartmentContext = createContext();
 
@@ -21,16 +20,15 @@ export const DepartmentProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${API_URL}/departments`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const token = localStorage.getItem('token');
       
-      if (res.ok) {
-        const data = await res.json();
-        setDepartments(Array.isArray(data) ? data : []);
-      } else {
-        throw new Error('Failed to fetch departments');
+      if (!token) {
+        setLoading(false);
+        return;
       }
+      
+      const data = await apiGet(`${API_URL}/departments`);
+      setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching departments:', error);
       setError(error.message);

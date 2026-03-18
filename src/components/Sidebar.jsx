@@ -4,58 +4,31 @@ import { MdRestaurantMenu, MdInventory, MdSettings, MdDashboard, MdPeople, MdAss
 import { GiCookingPot } from 'react-icons/gi';
 import { BiError, BiLogOut } from 'react-icons/bi';
 import { FaFire, FaChevronDown, FaChevronRight, FaBuilding } from 'react-icons/fa';
+import { canAccessPage } from '../utils/permissions';
 
 const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole, user }) => {
   const [showReportsSubmenu, setShowReportsSubmenu] = useState(false);
 
   const getNavItemsForRole = (role) => {
-    const baseItems = [
+    const allItems = [
       { id: 'dashboard', label: 'Dashboard', Icon: MdDashboard, color: '#667eea' },
+      { id: 'analytics', label: 'Analytics', Icon: MdBarChart, color: '#667eea' },
+      { id: 'departments', label: 'Departments', Icon: FaBuilding, color: '#667eea' },
+      { id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' },
+      { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
+      { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
+      { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
+      { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
+      { id: 'adjustedrecipes', label: 'Adjusted Recipes', Icon: MdEdit, color: '#ff6b35' },
+      { id: 'lossgoods', label: 'Loss Goods', Icon: MdError, color: '#ff4757' },
+      { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
+      { id: 'bulk-data', label: 'Bulk Data', Icon: MdCloudUpload, color: '#667eea' },
+      { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
+      { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
     ];
 
-    if (role === 'Admin') {
-      return [
-        ...baseItems,
-        { id: 'analytics', label: 'Analytics', Icon: MdBarChart, color: '#667eea' },
-        { id: 'departments', label: 'Departments', Icon: FaBuilding, color: '#667eea' },
-        { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
-        { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
-        { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
-        { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
-        { id: 'adjustedrecipes', label: 'Adjusted Recipes', Icon: MdEdit, color: '#ff6b35' },
-        { id: 'lossgoods', label: 'Loss Goods', Icon: MdError, color: '#ff4757' },
-        { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
-        { id: 'bulk-data', label: 'Bulk Data', Icon: MdCloudUpload, color: '#667eea' },
-        { id: 'reports', label: 'Reports', Icon: MdAssessment, color: '#667eea' },
-        { id: 'users', label: 'Users', Icon: MdPeople, color: '#667eea' },
-        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
-      ];
-    } else if (role === 'Chef') {
-      return [
-        ...baseItems,
-        { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
-        { id: 'inprogress', label: 'Cooking', Icon: FaFire, color: '#667eea' },
-        { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
-        { id: 'semifinished', label: 'Semi-Finished', Icon: BiError, color: '#667eea' },
-        { id: 'lossgoods', label: 'Loss Goods', Icon: MdError, color: '#ff4757' },
-        { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
-        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
-      ];
-    } else if (role === 'Staff' || role === 'Waiter') {
-      return [
-        ...baseItems,
-        { id: 'recipes', label: 'Recipes', Icon: MdRestaurantMenu, color: '#667eea' },
-        { id: 'cooking', label: 'Finished Goods', Icon: GiCookingPot, color: '#667eea' },
-        { id: 'inventory', label: 'Raw Materials', Icon: MdInventory, color: '#667eea' },
-        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
-      ];
-    } else {
-      // Default fallback
-      return [
-        ...baseItems,
-        { id: 'settings', label: 'Settings', Icon: MdSettings, color: '#667eea' }
-      ];
-    }
+    // Filter items based on user permissions for all roles (including admin)
+    return allItems.filter(item => canAccessPage(role, item.id));
   };
 
   const navItems = getNavItemsForRole(userRole);
@@ -125,7 +98,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole, user }) => {
             <ul className="menu gap-2">
           {navItems.map((item, index) => (
             <li key={item.id} style={{ animationDelay: `${index * 0.1}s` }} className="animate-fadeInUp">
-              {item.id === 'reports' && userRole === 'Admin' ? (
+              {item.id === 'reports' && canAccessPage(userRole, 'reports') ? (
                 <>
                   <a
                     onClick={() => setShowReportsSubmenu(!showReportsSubmenu)}

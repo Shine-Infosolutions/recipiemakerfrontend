@@ -7,6 +7,8 @@ import Loading from '../common/Loading';
 import Pagination from '../common/Pagination';
 import ManualLossForm from './ManualLossForm';
 import { useDepartments } from '../../contexts/DepartmentContext';
+import { useUser } from '../../contexts/UserContext';
+import { canDelete, canViewAllDepartments } from '../../utils/permissions';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -15,9 +17,9 @@ const LossGoods = () => {
   const [filteredLossItems, setFilteredLossItems] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const { departments } = useDepartments();
+  const { user } = useUser();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState('');
   const [showManualForm, setShowManualForm] = useState(false);
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
@@ -25,32 +27,23 @@ const LossGoods = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
+  const userRole = user?.role || 'store';
+
   useEffect(() => {
     fetchLossItems();
     fetchRecipes();
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(payload.role);
-      } catch (error) {
-        console.error('Error parsing token:', error);
-      }
-    }
   }, []);
 
   useEffect(() => {
     let filtered = lossItems;
     
-    // Apply department filtering
-    if (userRole === 'Admin') {
-      if (selectedDepartment) {
-        filtered = filtered.filter(item => 
-          item.recipeId?.departmentId?._id === selectedDepartment
-        );
-      }
+    // Apply department filtering for admin and manager roles
+    if ((userRole === 'admin' || userRole === 'manager') && selectedDepartment) {
+      filtered = filtered.filter(item => 
+        item.recipeId?.departmentId?._id === selectedDepartment
+      );
     }
-    // Non-admin users already get filtered data from backend
+    // Non-admin/manager users already get filtered data from backend
     
     setFilteredLossItems(filtered);
   }, [lossItems, selectedDepartment, userRole]);
@@ -176,7 +169,7 @@ const LossGoods = () => {
             </h1>
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Items marked as loss during cooking</p>}
           </div>
-          {userRole === 'Admin' && (
+          {(userRole === 'admin' || userRole === 'manager') && (
             <select
               style={{
                 padding: '8px 12px',
@@ -372,7 +365,7 @@ const LossGoods = () => {
                 <th style={{ color: '#2d3436', padding: '16px' }}>Loss Value</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Ingredients</th>
                 <th style={{ color: '#2d3436', padding: '16px' }}>Date</th>
-                {userRole === 'Admin' && (
+                {canDelete(userRole, 'loss-goods') && (
                   <th style={{ color: '#2d3436', padding: '16px' }}>Actions</th>
                 )}
               </tr>
@@ -441,7 +434,7 @@ const LossGoods = () => {
                       return `${dateStr}, ${timeStr}`;
                     })()}
                   </td>
-                  {userRole === 'Admin' && (
+                  {canDelete(userRole, 'loss-goods') && (
                     <td style={{ padding: '16px' }}>
                       <button 
                         onClick={() => deleteLossItem(item._id)} 

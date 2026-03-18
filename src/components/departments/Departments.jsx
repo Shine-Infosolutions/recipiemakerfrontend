@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { FaBuilding, FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import Loading from '../common/Loading';
 import { useDepartments } from '../../contexts/DepartmentContext';
+import { canDelete, canEdit, canCreate } from '../../utils/permissions';
+import { useUser } from '../../contexts/UserContext';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -11,6 +13,9 @@ const Departments = () => {
   const { departments, loading, refreshDepartments } = useDepartments();
   const [showModal, setShowModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
+  const [showInactive, setShowInactive] = useState(true);
+  const { user: currentUser } = useUser();
+  const userRole = currentUser?.role || 'store';
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -153,7 +158,7 @@ const Departments = () => {
               cursor: 'pointer', 
               fontWeight: '600', 
               fontSize: '14px',
-              display: 'flex',
+              display: canCreate(userRole, 'department') ? 'flex' : 'none',
               alignItems: 'center',
               gap: '6px'
             }}
@@ -164,6 +169,18 @@ const Departments = () => {
 
         {loading ? <Loading /> : (
           <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#636e72' }}>
+                <input
+                  type="checkbox"
+                  checked={showInactive}
+                  onChange={(e) => setShowInactive(e.target.checked)}
+                  style={{ marginRight: '4px' }}
+                />
+                Show inactive departments
+              </label>
+            </div>
+
             <div className="overflow-x-auto bg-white rounded-lg shadow">
               <table className="table">
                 <thead style={{ backgroundColor: '#f1f3f5' }}>
@@ -177,7 +194,7 @@ const Departments = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {departments.map((department) => (
+                  {(showInactive ? departments : departments.filter(dept => dept.isActive)).map((department) => (
                     <tr key={department._id} style={{ borderBottom: '1px solid #e9ecef' }}>
                       <td style={{ color: '#2d3436', fontWeight: '600', padding: '16px' }}>
                         {department.name}
@@ -214,48 +231,54 @@ const Departments = () => {
                       </td>
                       <td style={{ padding: '16px' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            onClick={() => openModal(department)}
-                            style={{ 
-                              padding: '6px 10px', 
-                              background: '#ffa502', 
-                              color: 'white', 
-                              border: 'none', 
-                              borderRadius: '6px', 
-                              cursor: 'pointer', 
-                              fontSize: '12px' 
-                            }}
-                          >
-                            <FaEdit />
-                          </button>
-                          <button 
-                            onClick={() => toggleStatus(department._id)}
-                            style={{ 
-                              padding: '6px 10px', 
-                              background: department.isActive ? '#ff4757' : '#00b894', 
-                              color: 'white', 
-                              border: 'none', 
-                              borderRadius: '6px', 
-                              cursor: 'pointer', 
-                              fontSize: '12px' 
-                            }}
-                          >
-                            {department.isActive ? <FaToggleOff /> : <FaToggleOn />}
-                          </button>
-                          <button 
-                            onClick={() => deleteDepartment(department._id)}
-                            style={{ 
-                              padding: '6px 10px', 
-                              background: '#ff4757', 
-                              color: 'white', 
-                              border: 'none', 
-                              borderRadius: '6px', 
-                              cursor: 'pointer', 
-                              fontSize: '12px' 
-                            }}
-                          >
-                            <FaTrash />
-                          </button>
+                          {canEdit(userRole, 'department') && (
+                            <button 
+                              onClick={() => openModal(department)}
+                              style={{ 
+                                padding: '6px 10px', 
+                                background: '#ffa502', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontSize: '12px' 
+                              }}
+                            >
+                              <FaEdit />
+                            </button>
+                          )}
+                          {canEdit(userRole, 'department') && (
+                            <button 
+                              onClick={() => toggleStatus(department._id)}
+                              style={{ 
+                                padding: '6px 10px', 
+                                background: department.isActive ? '#ff4757' : '#00b894', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontSize: '12px' 
+                              }}
+                            >
+                              {department.isActive ? <FaToggleOff /> : <FaToggleOn />}
+                            </button>
+                          )}
+                          {canDelete(userRole, 'department') && (
+                            <button 
+                              onClick={() => deleteDepartment(department._id)}
+                              style={{ 
+                                padding: '6px 10px', 
+                                background: '#ff4757', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontSize: '12px' 
+                              }}
+                            >
+                              <FaTrash />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

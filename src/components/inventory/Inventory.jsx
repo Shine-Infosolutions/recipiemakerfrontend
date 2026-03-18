@@ -4,8 +4,11 @@ import toast from 'react-hot-toast';
 import { MdKitchen, MdEdit, MdDelete, MdRestaurantMenu, MdMoreVert, MdTransferWithinAStation } from 'react-icons/md';
 import Loading from '../common/Loading';
 import Pagination from '../common/Pagination';
+import PermissionWrapper from '../common/PermissionWrapper';
 import TransferModal from './TransferModal';
 import { useDepartments } from '../../contexts/DepartmentContext';
+import { useUser } from '../../contexts/UserContext';
+import { canDelete, canCreate, canEdit, canViewAllDepartments } from '../../utils/permissions';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -13,12 +16,12 @@ const Inventory = () => {
   const [items, setItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const { departments } = useDepartments();
+  const { user } = useUser();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '', departmentId: '' });
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -26,17 +29,10 @@ const Inventory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
+  const userRole = user?.role || 'store';
+
   useEffect(() => {
     fetchItems();
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(payload.role);
-      } catch (error) {
-        console.error('Error parsing token:', error);
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -53,32 +49,28 @@ const Inventory = () => {
   }, [activeDropdown]);
 
   useEffect(() => {
-    if (userRole === 'Admin') {
-      // Admin can filter by department or see all
+    if (canViewAllDepartments(userRole)) {
+      // Admin and manager can filter by department or see all
       if (selectedDepartment) {
         setFilteredItems(items.filter(item => item.departmentId?._id === selectedDepartment));
       } else {
         setFilteredItems(items);
       }
     } else {
-      // Non-admin users see only their department's items
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.departmentId) {
-            setFilteredItems(items.filter(item => item.departmentId?._id === payload.departmentId));
-          } else {
-            setFilteredItems(items);
-          }
-        } catch (error) {
-          setFilteredItems(items);
-        }
+      // Other users see only their department's items
+      if (user?.departmentId) {
+        const userDeptId = user.departmentId._id || user.departmentId;
+        const filtered = items.filter(item => {
+          const itemDeptId = item.departmentId?._id || item.departmentId;
+          return itemDeptId && userDeptId && itemDeptId.toString() === userDeptId.toString();
+        });
+        setFilteredItems(filtered);
       } else {
+        // If user has no department, show all items
         setFilteredItems(items);
       }
     }
-  }, [items, selectedDepartment, userRole]);
+  }, [items, selectedDepartment, userRole, user]);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -204,7 +196,7 @@ const Inventory = () => {
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Manage your raw materials</p>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {userRole === 'Admin' && (
+            {canViewAllDepartments(userRole) && (
               <select
                 style={{
                   padding: '8px 12px',
@@ -225,29 +217,31 @@ const Inventory = () => {
                 ))}
               </select>
             )}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setShowForm(!showForm);
-                setEditingId(null);
-                setFormData({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '', departmentId: '' });
-              }}
-              style={{
-                padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: window.innerWidth < 768 ? '12px' : '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              + Add Item
-            </motion.button>
+            {canCreate(userRole, 'inventory') && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowForm(!showForm);
+                  setEditingId(null);
+                  setFormData({ name: '', productCode: '', quantity: '', unit: '', category: '', price: '', minStock: '', supplier: '', departmentId: '' });
+                }}
+                style={{
+                  padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: window.innerWidth < 768 ? '12px' : '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                + Add Item
+              </motion.button>
+            )}
           </div>
         </div>
         {loading ? <Loading /> : (
@@ -616,16 +610,18 @@ const Inventory = () => {
                 whiteSpace: 'nowrap'
               }}
             >
-              <button
-                onClick={() => {
-                  const item = filteredItems.find(i => i._id === activeDropdown);
-                  editItem(item);
-                  setActiveDropdown(null);
-                }}
-                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 text-left rounded-t-lg"
-              >
-                <MdEdit className="text-blue-500 text-base" /> Edit Item
-              </button>
+              {canEdit(userRole, 'inventory') && (
+                <button
+                  onClick={() => {
+                    const item = filteredItems.find(i => i._id === activeDropdown);
+                    editItem(item);
+                    setActiveDropdown(null);
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100 text-left rounded-t-lg"
+                >
+                  <MdEdit className="text-blue-500 text-base" /> Edit Item
+                </button>
+              )}
               <button
                 onClick={() => {
                   const item = filteredItems.find(i => i._id === activeDropdown);
@@ -635,15 +631,17 @@ const Inventory = () => {
               >
                 <MdTransferWithinAStation className="text-green-500 text-base" /> Transfer Item
               </button>
-              <button
-                onClick={() => {
-                  deleteItem(activeDropdown);
-                  setActiveDropdown(null);
-                }}
-                className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left rounded-b-lg"
-              >
-                <MdDelete className="text-red-500 text-base" /> Delete Item
-              </button>
+              {canDelete(userRole, 'inventory') && (
+                <button
+                  onClick={() => {
+                    deleteItem(activeDropdown);
+                    setActiveDropdown(null);
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left rounded-b-lg"
+                >
+                  <MdDelete className="text-red-500 text-base" /> Delete Item
+                </button>
+              )}
             </div>
           </>
         )}

@@ -3,10 +3,15 @@ import { motion } from 'framer-motion';
 import { MdEdit, MdDelete, MdAdd, MdPeople } from 'react-icons/md';
 import Loading from '../common/Loading';
 import { apiRequest, API_URL } from '../../utils/api';
+import { canDelete, canEdit, canCreate } from '../../utils/permissions';
+import { useUser } from '../../contexts/UserContext';
 
 const UserList = ({ onEdit, onAdd }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(true);
+  const { user: currentUser } = useUser();
+  const userRole = currentUser?.role || 'store';
 
   useEffect(() => {
     fetchUsers();
@@ -50,6 +55,8 @@ const UserList = ({ onEdit, onAdd }) => {
   };
 
   if (loading) return <Loading />;
+
+  const filteredUsers = showInactive ? users : users.filter(user => user.isActive !== false);
 
   return (
     <>
@@ -97,12 +104,25 @@ const UserList = ({ onEdit, onAdd }) => {
             fontWeight: '600',
             cursor: 'pointer',
             boxShadow: '0 4px 12px rgba(102,126,234,0.3)',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            display: canCreate(userRole, 'user') ? 'block' : 'none'
           }}
         >
           + Add User
         </motion.button>
       </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#636e72' }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{ marginRight: '4px' }}
+            />
+            Show inactive users
+          </label>
+        </div>
 
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="table w-full">
@@ -117,7 +137,7 @@ const UserList = ({ onEdit, onAdd }) => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
+            {filteredUsers.map(user => (
               <tr 
                 key={user._id} 
                 style={{ borderBottom: '1px solid #e9ecef' }} 
@@ -196,18 +216,22 @@ const UserList = ({ onEdit, onAdd }) => {
                 </td>
                 <td>
                   <div className="flex gap-2 justify-center">
-                    <button 
-                      onClick={() => onEdit(user)} 
-                      className="btn btn-sm btn-primary"
-                    >
-                      <MdEdit className="text-base" /> Edit
-                    </button>
-                    <button 
-                      onClick={() => deleteUser(user._id)} 
-                      className="btn btn-sm btn-error"
-                    >
-                      <MdDelete className="text-base" /> Delete
-                    </button>
+                    {canEdit(userRole, 'user') && (
+                      <button 
+                        onClick={() => onEdit(user)} 
+                        className="btn btn-sm btn-primary"
+                      >
+                        <MdEdit className="text-base" /> Edit
+                      </button>
+                    )}
+                    {canDelete(userRole, 'user') && (
+                      <button 
+                        onClick={() => deleteUser(user._id)} 
+                        className="btn btn-sm btn-error"
+                      >
+                        <MdDelete className="text-base" /> Delete
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -5,6 +5,8 @@ import { BiError } from 'react-icons/bi';
 import Loading from '../common/Loading';
 import Pagination from '../common/Pagination';
 import { useDepartments } from '../../contexts/DepartmentContext';
+import { useUser } from '../../contexts/UserContext';
+import { canDelete, canViewAllDepartments } from '../../utils/permissions';
 
 const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api';
 
@@ -13,14 +15,16 @@ const SemiFinished = () => {
   const [filteredCancelledRecipes, setFilteredCancelledRecipes] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const { departments } = useDepartments();
+  const { user } = useUser();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+
+  const userRole = user?.role || 'store';
 
   useEffect(() => {
     fetchCancelledRecipes();
@@ -39,30 +43,23 @@ const SemiFinished = () => {
   useEffect(() => {
     let filtered = cancelledRecipes;
     
-    if (userRole === 'Admin') {
+    if (canViewAllDepartments(userRole)) {
       if (selectedDepartment) {
         filtered = filtered.filter(item => 
           item.recipeId?.departmentId?._id === selectedDepartment
         );
       }
     } else {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.departmentId) {
-            filtered = filtered.filter(item => 
-              item.recipeId?.departmentId?._id === payload.departmentId
-            );
-          }
-        } catch (error) {
-          // Keep all items if parsing fails
-        }
+      // Kitchen and other users see only their department's items
+      if (user?.departmentId) {
+        filtered = filtered.filter(item => 
+          item.recipeId?.departmentId?._id === user.departmentId
+        );
       }
     }
     
     setFilteredCancelledRecipes(filtered);
-  }, [cancelledRecipes, selectedDepartment, userRole]);
+  }, [cancelledRecipes, selectedDepartment, userRole, user]);
 
   const fetchRecipes = async () => {
     try {
@@ -164,7 +161,7 @@ const SemiFinished = () => {
             </h1>
             {window.innerWidth >= 768 && <p style={{ color: '#636e72', marginTop: '4px', fontSize: '13px', fontWeight: '500', margin: '4px 0 0 0' }}>Cancelled recipes with restocked ingredients</p>}
           </div>
-          {userRole === 'Admin' && (
+          {canViewAllDepartments(userRole) && (
             <select
               style={{
                 padding: '8px 12px',
@@ -376,7 +373,7 @@ const SemiFinished = () => {
                     })()}
                   </td>
                   <td style={{ padding: '16px' }}>
-                    {userRole === 'Admin' && (
+                    {canDelete(userRole, 'semi-finished') && (
                       <button onClick={() => deleteRecipe(recipe._id)} style={{ padding: '8px 12px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <MdDelete style={{ fontSize: '16px' }} /> Delete
                       </button>
