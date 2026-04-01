@@ -13,6 +13,7 @@ const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [semiFinishedItems, setSemiFinishedItems] = useState([]);
   const { departments } = useDepartments();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -23,7 +24,7 @@ const Recipes = () => {
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [adjustedIngredients, setAdjustedIngredients] = useState([]);
-  const [formData, setFormData] = useState({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [] });
+  const [formData, setFormData] = useState({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ type: 'raw', inventoryId: '', quantity: '', unit: '' }] });
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState({});
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'Staff');
@@ -33,6 +34,7 @@ const Recipes = () => {
   useEffect(() => {
     fetchRecipes();
     fetchInventory();
+    fetchSemiFinishedItems();
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -107,10 +109,24 @@ const Recipes = () => {
     setInventory(data);
   };
 
+  const fetchSemiFinishedItems = async () => {
+    try {
+      const res = await fetch(`${API_URL}/semi-finished`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSemiFinishedItems(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching semi-finished items:', error);
+    }
+  };
+
   const addIngredient = () => {
     setFormData({
       ...formData,
-      ingredients: [...formData.ingredients, { inventoryId: '', quantity: '', unit: '' }]
+      ingredients: [...formData.ingredients, { type: 'raw', inventoryId: '', quantity: '', unit: '' }]
     });
   };
 
@@ -118,8 +134,13 @@ const Recipes = () => {
     const updated = [...formData.ingredients];
     updated[index][field] = value;
     if (field === 'inventoryId') {
-      const item = inventory.find(i => i._id === value);
-      if (item) updated[index].unit = item.unit;
+      if (updated[index].type === 'raw') {
+        const item = inventory.find(i => i._id === value);
+        if (item) updated[index].unit = item.unit;
+      } else {
+        const item = semiFinishedItems.find(i => i._id === value);
+        if (item) updated[index].unit = 'units';
+      }
     }
     setFormData({ ...formData, ingredients: updated });
   };
@@ -465,7 +486,23 @@ const Recipes = () => {
                           </button>
                         )}
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="form-control">
+                          <label className="label">
+                            <span className="label-text">Type</span>
+                          </label>
+                          <select
+                            className="select select-bordered"
+                            value={ingredient.type || 'raw'}
+                            onChange={(e) => {
+                              updateIngredient(index, 'type', e.target.value);
+                              updateIngredient(index, 'inventoryId', ''); // Reset selection
+                            }}
+                          >
+                            <option value="raw">Raw Material</option>
+                            <option value="semi-finished">Semi-Finished</option>
+                          </select>
+                        </div>
                         <div className="form-control">
                           <label className="label">
                             <span className="label-text">Select Item</span>
@@ -475,23 +512,39 @@ const Recipes = () => {
                             value={ingredient.inventoryId}
                             onChange={(e) => updateIngredient(index, 'inventoryId', e.target.value)}
                           >
-                            <option value="">Choose ingredient...</option>
-                            {inventory.map(inv => (
-                              <option key={inv._id} value={inv._id}>{inv.name} ({inv.quantity} {inv.unit})</option>
-                            ))}
+                            <option value="">Choose {(ingredient.type || 'raw') === 'raw' ? 'raw material' : 'semi-finished item'}...</option>
+                            {(ingredient.type || 'raw') === 'raw' 
+                              ? inventory.map(inv => (
+                                  <option key={inv._id} value={inv._id}>
+                                    {inv.name} (Available: {inv.quantity} {inv.unit})
+                                  </option>
+                                ))
+                              : semiFinishedItems.map(sf => (
+                                  <option key={sf._id} value={sf._id}>
+                                    {sf.name} (Available: {sf.quantity || 0} units)
+                                  </option>
+                                ))
+                            }
                           </select>
                         </div>
                         <div className="form-control">
                           <label className="label">
                             <span className="label-text">Quantity</span>
                           </label>
-                          <input
-                            type="number"
-                            placeholder="Enter quantity"
-                            className="input input-bordered"
-                            value={ingredient.quantity}
-                            onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                          />
+                          <div className="input-group">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Enter quantity"
+                              className="input input-bordered flex-1"
+                              value={ingredient.quantity}
+                              onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                            />
+                            <span className="bg-base-300 px-3 py-2 text-sm font-medium">
+                              {ingredient.unit || 'unit'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
