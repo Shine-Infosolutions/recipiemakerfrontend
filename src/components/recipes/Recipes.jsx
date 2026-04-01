@@ -37,6 +37,7 @@ const Recipes = () => {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('User role from token:', payload.role); // Debug log
         setUserRole(payload.role);
       } catch (error) {
         console.error('Error parsing token:', error);
@@ -773,6 +774,30 @@ const Recipes = () => {
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          {/* Temporarily show edit button for all users to test */}
+                          <button
+                            onClick={() => {
+                              console.log('Edit button clicked for recipe:', originalRecipe);
+                              console.log('Current userRole:', userRole);
+                              editRecipe(originalRecipe);
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#667eea',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: '600',
+                              fontSize: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <MdEdit style={{ fontSize: '14px' }} /> Edit
+                          </button>
+                          
                           <button
                             onClick={() => openAdjustModal(recipe)}
                             disabled={originalRecipe?.isActive === false}
@@ -818,76 +843,6 @@ const Recipes = () => {
                           >
                             {cookingRecipe === recipe._id ? <><GiCookingPot style={{ fontSize: '14px' }} /> Cooking...</> : <><GiCookingPot style={{ fontSize: '14px' }} /> Cook</>}
                           </button>
-                          
-                          {userRole === 'Admin' && (
-                            <div style={{ position: 'relative' }}>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  setDropdownOpen({ 
-                                    ...dropdownOpen, 
-                                    [recipe._id]: !dropdownOpen[recipe._id] ? {
-                                      open: true,
-                                      x: rect.right - 120, // Position to the left of button
-                                      y: rect.bottom + 5   // Position below button
-                                    } : false
-                                  });
-                                }}
-                                style={{
-                                  padding: '6px',
-                                  background: '#667eea',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <MdMoreVert style={{ fontSize: '16px' }} />
-                              </button>
-                              
-                              {dropdownOpen[recipe._id] && (
-                                <div style={{
-                                  position: 'fixed',
-                                  top: `${dropdownOpen[recipe._id].y}px`,
-                                  left: `${dropdownOpen[recipe._id].x}px`,
-                                  background: 'white',
-                                  border: '1px solid #e9ecef',
-                                  borderRadius: '8px',
-                                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                                  zIndex: 9999,
-                                  minWidth: '120px'
-                                }}>
-                                  <button
-                                    onClick={() => {
-                                      editRecipe(originalRecipe);
-                                      setDropdownOpen({ ...dropdownOpen, [recipe._id]: false });
-                                    }}
-                                    style={{
-                                      width: '100%',
-                                      padding: '8px 12px',
-                                      background: 'transparent',
-                                      border: 'none',
-                                      textAlign: 'left',
-                                      cursor: 'pointer',
-                                      fontSize: '14px',
-                                      color: '#2d3436',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px'
-                                    }}
-                                    onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
-                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                  >
-                                    <MdEdit style={{ fontSize: '16px', color: '#667eea' }} /> Edit
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </td>
                     </tr>

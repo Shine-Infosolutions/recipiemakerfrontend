@@ -81,7 +81,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole, user }) => {
 
         {/* Menu items */}
         <div className="flex-1 relative z-10" style={{
-          maxHeight: user ? 'calc(100vh - 320px)' : 'calc(100vh - 200px)',
+          maxHeight: user ? 'calc(100vh - 360px)' : 'calc(100vh - 240px)',
           overflowY: 'auto',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none'
@@ -260,12 +260,16 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, userRole, user }) => {
         <div className="p-4 border-t border-white/20 relative z-10">
           <button
             onClick={onLogout}
-            className="w-full gap-2 px-4 py-3 bg-red-500/80 hover:bg-red-600 text-white rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm border border-white/20 font-medium flex items-center justify-center"
+            className="w-full gap-2 px-4 py-3 bg-red-500/80 hover:bg-red-600 text-white rounded-xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm border border-white/20 font-medium flex items-center justify-center mb-3"
             style={{ backdropFilter: 'blur(10px)' }}
           >
             <BiLogOut className="text-lg" />
             Logout
           </button>
+          <div className="text-center">
+            <p className="text-xs text-white/60">Developed by</p>
+            <p className="text-sm text-white/80 font-semibold">Shine Infosolution</p>
+          </div>
         </div>
       </div>
     </div>
