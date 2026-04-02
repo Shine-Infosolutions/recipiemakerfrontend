@@ -12,30 +12,23 @@ const API_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/
 const InProgress = () => {
   const [cookingItems, setCookingItems] = useState([]);
   const [filteredCookingItems, setFilteredCookingItems] = useState([]);
-  const [recipes, setRecipes] = useState([]);
   const { departments } = useDepartments();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showRestockModal, setShowRestockModal] = useState(false);
   const [showLossModal, setShowLossModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [selectedIngredients, setSelectedIngredients] = useState([]);
-  const [ingredientQuantities, setIngredientQuantities] = useState({});
   const [userRole, setUserRole] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchCookingItems();
-    fetchRecipes();
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUserRole(payload.role);
-      } catch (error) {
-        console.error('Error parsing token:', error);
-      }
+      } catch (error) {}
     }
   }, []);
 
@@ -71,38 +64,20 @@ const InProgress = () => {
     }
   }, [cookingItems, selectedDepartment, userRole]);
 
-  const fetchRecipes = async () => {
-    try {
-      const res = await fetch(`${API_URL}/recipes`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      setRecipes(data);
-    } catch (error) {
-      console.error('Error fetching recipes:', error);
-    }
-  };
-
   const fetchCookingItems = async () => {
     setLoading(true);
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
       const res = await fetch(`${API_URL}/cooked-items`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         signal: controller.signal
       });
       clearTimeout(timeoutId);
-      
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      console.log('All cooking items:', data);
-      const cookingItems = data.filter(item => item.status === 'cooking');
-      console.log('Cooking items:', cookingItems);
-      setCookingItems(cookingItems);
+      setCookingItems(data.filter(item => item.status === 'cooking'));
     } catch (error) {
-      console.error('Error:', error);
       setCookingItems([]);
     }
     setLoading(false);
@@ -112,85 +87,18 @@ const InProgress = () => {
     try {
       const res = await fetch(`${API_URL}/cooked-items/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ status: status === 'finished' ? 'finished' : status === 'loss' ? 'loss' : 'semi-finished' })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ status })
       });
-      
       if (!res.ok) {
         const error = await res.json();
-        toast.error(`Error: ${error.error || 'Failed to update status'}`);
+        toast.error(error.error || 'Failed to update status');
         return;
       }
-      
       fetchCookingItems();
-      toast.success(`Item marked as ${status === 'finished' ? 'finished' : status === 'loss' ? 'loss' : 'semi-finished'}!`);
+      toast.success(status === 'finished' ? 'Item marked as finished!' : 'Order cancelled and ingredients restocked!');
     } catch (error) {
-      alert(`Error: ${error.message}`);
-    }
-  };
-
-  const openRestockModal = (item) => {
-    setSelectedItem(item);
-    // Extract only the inventoryId strings, not the whole ingredient object
-    const ingredientIds = item.ingredients.map(ing => 
-      typeof ing.inventoryId === 'string' ? ing.inventoryId : ing.inventoryId._id || ing.inventoryId.toString()
-    );
-    setSelectedIngredients(ingredientIds);
-    
-    // Initialize quantities with original amounts
-    const quantities = {};
-    item.ingredients.forEach(ing => {
-      const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-      quantities[ingId] = ing.quantity;
-    });
-    setIngredientQuantities(quantities);
-    
-    setShowRestockModal(true);
-  };
-
-  const openLossModal = (item) => {
-    setSelectedItem(item);
-    setShowLossModal(true);
-  };
-
-
-  const confirmSemiFinished = async () => {
-    if (selectedIngredients.length === 0) {
-      toast.error('Please select at least one ingredient to restock');
-      return;
-    }
-    
-    try {
-      const res = await fetch(`${API_URL}/cooked-items/${selectedItem._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ 
-          status: 'semi-finished',
-          restockedIngredients: selectedIngredients,
-          ingredientQuantities: ingredientQuantities
-        })
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        toast.error(`Error: ${error.error || 'Failed to update status'}`);
-        return;
-      }
-      
-      setShowRestockModal(false);
-      setSelectedItem(null);
-      setSelectedIngredients([]);
-      setIngredientQuantities({});
-      fetchCookingItems();
-      toast.success('Ingredients restocked successfully!');
-    } catch (error) {
-      toast.error(`Error: ${error.message}`);
+      toast.error(error.message);
     }
   };
 
@@ -324,11 +232,11 @@ const InProgress = () => {
                       <button onClick={() => updateStatus(item._id, 'finished')} style={{ padding: '8px 12px', background: '#00b894', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
                         Finished
                       </button>
-                      <button onClick={() => openRestockModal(item)} style={{ padding: '8px 12px', background: '#ffa502', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
-                        Semi-Finished
-                      </button>
-                      <button onClick={() => openLossModal(item)} style={{ padding: '8px 12px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                      <button onClick={() => { setSelectedItem(item); setShowLossModal(true); }} style={{ padding: '8px 12px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
                         Loss
+                      </button>
+                      <button onClick={() => updateStatus(item._id, 'cancelled')} style={{ padding: '8px 12px', background: '#636e72', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                        Cancel
                       </button>
                     </div>
                   </td>
@@ -370,90 +278,9 @@ const InProgress = () => {
         )}
       </div>
 
-      {showRestockModal && selectedItem && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-2xl">
-            <h3 className="font-bold text-lg mb-4">
-              Select Ingredients to Restock
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Select which ingredients to restock to inventory and adjust quantities:
-            </p>
-            <div className="space-y-3 mb-6 max-h-80 overflow-y-auto">
-              {selectedItem.ingredients?.map((ing, idx) => {
-                const ingId = typeof ing.inventoryId === 'string' ? ing.inventoryId : (ing.inventoryId._id || ing.inventoryId.toString());
-                return (
-                  <div key={idx} className="card bg-base-200 p-4">
-                    <div className="flex items-center gap-4">
-                      <input
-                        type="checkbox"
-                        className="checkbox"
-                        checked={selectedIngredients.includes(ingId)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedIngredients([...selectedIngredients, ingId]);
-                          } else {
-                            setSelectedIngredients(selectedIngredients.filter(id => id !== ingId));
-                          }
-                        }}
-                      />
-                      <div className="flex-1">
-                        <span className="font-semibold text-base">
-                          {ing.name || 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="form-control">
-                        <label className="label">
-                          <span className="label-text text-xs">Quantity</span>
-                        </label>
-                        <input
-                          type="number"
-                          className="input input-bordered input-sm w-20"
-                          value={ingredientQuantities[ingId] || ing.quantity}
-                          onChange={(e) => {
-                            setIngredientQuantities({
-                              ...ingredientQuantities,
-                              [ingId]: parseFloat(e.target.value) || 0
-                            });
-                          }}
-                          min="0"
-                          step="0.1"
-                        />
-                      </div>
-                      <span className="text-sm text-gray-600 font-medium min-w-[3rem]">
-                        {ing.unit}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShowRestockModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-warning"
-                onClick={confirmSemiFinished}
-              >
-                Confirm Restock
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <LossModal
         isOpen={showLossModal}
-        onClose={() => {
-          setShowLossModal(false);
-          setSelectedItem(null);
-        }}
+        onClose={() => { setShowLossModal(false); setSelectedItem(null); }}
         selectedItem={selectedItem}
         onSuccess={fetchCookingItems}
       />

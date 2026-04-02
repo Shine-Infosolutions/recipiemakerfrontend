@@ -19,6 +19,16 @@ const CreateSemiFinished = ({ isOpen, onClose, onSuccess }) => {
   useEffect(() => {
     if (isOpen) {
       fetchInventory();
+      // Auto-fill department from token for non-admin users
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.departmentId) {
+            setFormData(prev => ({ ...prev, departmentId: payload.departmentId }));
+          }
+        } catch (e) {}
+      }
     }
   }, [isOpen]);
 
@@ -92,11 +102,7 @@ const CreateSemiFinished = ({ isOpen, onClose, onSuccess }) => {
 
       if (res.ok) {
         toast.success('Semi-finished item created successfully!');
-        setFormData({
-          name: '',
-          departmentId: '',
-          rawMaterials: [{ inventoryId: '', quantity: '', unit: '' }]
-        });
+        setFormData({ name: '', departmentId: '', rawMaterials: [{ inventoryId: '', quantity: '', unit: '' }] });
         onSuccess();
         onClose();
       } else {

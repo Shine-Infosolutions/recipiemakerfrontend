@@ -14,7 +14,6 @@ const AddSemiFinishedStock = ({ isOpen, onClose, onSuccess, semiFinishedItem }) 
 
   useEffect(() => {
     if (isOpen && semiFinishedItem) {
-      // Initialize form with the semi-finished item's raw materials
       setFormData({
         quantity: '',
         rawMaterials: semiFinishedItem.rawMaterials.map(rm => ({
@@ -22,21 +21,23 @@ const AddSemiFinishedStock = ({ isOpen, onClose, onSuccess, semiFinishedItem }) 
           name: rm.inventoryId.name,
           requiredQuantity: rm.quantity,
           unit: rm.unit,
-          quantityToUse: rm.quantity // Start with the base quantity per unit
+          quantityToUse: 0
         }))
       });
       fetchInventory();
     }
   }, [isOpen, semiFinishedItem]);
 
-  // Update raw material quantities when production quantity changes
   useEffect(() => {
-    if (formData.quantity && formData.rawMaterials.length > 0) {
-      const updatedRawMaterials = formData.rawMaterials.map(rm => ({
-        ...rm,
-        quantityToUse: rm.requiredQuantity * parseFloat(formData.quantity || 1)
+    if (formData.rawMaterials.length > 0) {
+      const qty = parseFloat(formData.quantity) || 0;
+      setFormData(prev => ({
+        ...prev,
+        rawMaterials: prev.rawMaterials.map(rm => ({
+          ...rm,
+          quantityToUse: rm.requiredQuantity * qty
+        }))
       }));
-      setFormData(prev => ({ ...prev, rawMaterials: updatedRawMaterials }));
     }
   }, [formData.quantity]);
 
@@ -182,7 +183,7 @@ const AddSemiFinishedStock = ({ isOpen, onClose, onSuccess, semiFinishedItem }) 
                       </div>
                       <div className="label">
                         <span className="label-text-alt text-info">
-                          {material.requiredQuantity} {material.unit} × {formData.quantity || 0} units = {material.quantityToUse} {material.unit}
+                          {material.requiredQuantity} {material.unit} × {formData.quantity || 0} = {material.quantityToUse} {material.unit}
                         </span>
                       </div>
                     </div>

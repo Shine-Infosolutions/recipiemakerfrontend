@@ -39,7 +39,6 @@ const Recipes = () => {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('User role from token:', payload.role); // Debug log
         setUserRole(payload.role);
       } catch (error) {
         console.error('Error parsing token:', error);
@@ -168,17 +167,19 @@ const Recipes = () => {
           departmentId: formData.departmentId,
           sellingPrice: parseFloat(formData.sellingPrice) || 0,
           ingredients: formData.ingredients.map(ing => ({
+            type: ing.type || 'raw',
             inventoryId: ing.inventoryId,
             quantity: parseFloat(ing.quantity),
             unit: ing.unit
           }))
         })
       });
-      setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+      setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ type: 'raw', inventoryId: '', quantity: '', unit: '' }] });
       setEditingId(null);
       setShowForm(false);
       fetchRecipes();
       fetchInventory();
+      fetchSemiFinishedItems();
       toast.success(editingId ? 'Recipe updated successfully!' : 'Recipe created successfully!');
     } else {
       toast.error('Please fill in all required fields including department');
@@ -187,6 +188,10 @@ const Recipes = () => {
 
   const canCookRecipe = (recipe) => {
     return recipe.ingredients?.every(ing => {
+      if (ing.type === 'semi-finished') {
+        const sfItem = semiFinishedItems.find(i => i._id === ing.inventoryId?._id);
+        return sfItem && sfItem.quantity >= ing.quantity;
+      }
       const invItem = inventory.find(i => i._id === ing.inventoryId?._id);
       return invItem && invItem.quantity >= ing.quantity;
     });
@@ -249,10 +254,9 @@ const Recipes = () => {
       
       alert(`Recipe cooked successfully!`);
       toast.success(`Recipe "${sourceRecipe.title}" is now cooking!`);
-      console.log('Refreshing recipes and inventory...');
       await fetchRecipes();
       await fetchInventory();
-      console.log('Refresh complete');
+      await fetchSemiFinishedItems();
       setCookQuantities({ ...cookQuantities, [id]: 1 });
       
       // Reset adjusted ingredients after cooking
@@ -285,6 +289,10 @@ const Recipes = () => {
 
   const canCookWithAdjustedIngredients = () => {
     return adjustedIngredients.every(ing => {
+      if (ing.type === 'semi-finished') {
+        const sfItem = semiFinishedItems.find(i => i._id === ing.inventoryId?._id);
+        return sfItem && sfItem.quantity >= ing.adjustedQuantity;
+      }
       const invItem = inventory.find(i => i._id === ing.inventoryId?._id);
       return invItem && invItem.quantity >= ing.adjustedQuantity;
     });
@@ -319,6 +327,7 @@ const Recipes = () => {
       servings: recipe.servings || '',
       sellingPrice: recipe.sellingPrice || '',
       ingredients: recipe.ingredients.map(ing => ({
+        type: ing.type || 'raw',
         inventoryId: ing.inventoryId?._id || '',
         quantity: ing.quantity,
         unit: ing.unit
@@ -386,7 +395,7 @@ const Recipes = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 setShowForm(!showForm);
-                setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+                setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ type: 'raw', inventoryId: '', quantity: '', unit: '' }] });
               }}
               style={{
                 padding: window.innerWidth < 768 ? '8px 12px' : '10px 20px',
@@ -559,7 +568,7 @@ const Recipes = () => {
                   onClick={() => {
                     setShowForm(false);
                     setEditingId(null);
-                    setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ inventoryId: '', quantity: '', unit: '' }] });
+                    setFormData({ title: '', departmentId: '', instructions: '', cookTime: '', servings: '', sellingPrice: '', ingredients: [{ type: 'raw', inventoryId: '', quantity: '', unit: '' }] });
                   }}
                 >
                   Cancel
@@ -780,8 +789,11 @@ const Recipes = () => {
                       <td style={{ padding: '16px', fontSize: '12px', color: '#636e72' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                           {recipe.ingredients?.map((ing, idx) => {
-                            const invItem = inventory.find(i => i._id === ing.inventoryId?._id);
-                            const hasEnough = invItem && invItem.quantity >= ing.quantity;
+                            const isSF = ing.type === 'semi-finished';
+                            const item = isSF
+                              ? semiFinishedItems.find(i => i._id === ing.inventoryId?._id)
+                              : inventory.find(i => i._id === ing.inventoryId?._id);
+                            const hasEnough = item && item.quantity >= ing.quantity;
                             return (
                               <span key={idx} style={{ 
                                 background: hasEnough ? '#e8f5e9' : '#ffebee', 
@@ -792,6 +804,7 @@ const Recipes = () => {
                                 fontWeight: '600',
                                 whiteSpace: 'nowrap'
                               }}>
+                                {isSF && <span style={{ background: '#667eea', color: 'white', borderRadius: '3px', padding: '1px 4px', fontSize: '9px', marginRight: '3px' }}>SF</span>}
                                 {ing.inventoryId?.name || 'Unknown'}: {ing.quantity}{ing.unit}
                               </span>
                             );
@@ -829,11 +842,7 @@ const Recipes = () => {
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                           {/* Temporarily show edit button for all users to test */}
                           <button
-                            onClick={() => {
-                              console.log('Edit button clicked for recipe:', originalRecipe);
-                              console.log('Current userRole:', userRole);
-                              editRecipe(originalRecipe);
-                            }}
+                            onClick={() => editRecipe(originalRecipe)}
                             style={{
                               padding: '6px 12px',
                               background: '#667eea',
